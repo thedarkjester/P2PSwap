@@ -123,7 +123,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
         }
     }
 
-    function removeSwap(uint256 _swapId) external nonReentrant {
+    function removeSwap(uint256 _swapId) external {
         // return eth balance if needs be
         Swap memory swap = swaps[_swapId];
 
