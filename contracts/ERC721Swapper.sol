@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Swapper} from "./IERC721Swapper.sol";
-
 
 contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     address private constant ZERO_ADDRESS = address(0);
@@ -12,7 +11,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     mapping(address => uint256) public balances;
 
     // deployer pays for the slot vs. the first swapper.
-    uint256 public swapId = 0;
+    uint256 public swapId = 1;
 
     // contractAddress => tokenId
     mapping(uint256 => Swap) public swaps;
@@ -41,22 +40,22 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
             revert TwoWayEthPortionsDisallowed();
         }
 
-        //todo check this updates storage
         unchecked {
-            uint256 newSwapId = swapId + 1;
-            swapId = newSwapId;
+            uint256 newSwapId = swapId++;
 
-            swaps[newSwapId] = Swap(
-                newSwapId,
-                _initiatorNftContract,
-                _acceptorNftContract,
-                msg.sender,
-                _initiatorTokenId,
-                _acceptor,
-                _acceptorTokenId,
-                msg.value,
-                _acceptorETHPortion
-            );
+            Swap memory newSwap;
+
+            newSwap.swapId = newSwapId;
+            newSwap.initiatorNftContract = _initiatorNftContract;
+            newSwap.acceptorNftContract = _acceptorNftContract;
+            newSwap.initiator = msg.sender;
+            newSwap.initiatorTokenId = _initiatorTokenId;
+            newSwap.acceptor = _acceptor;
+            newSwap.acceptorTokenId = _acceptorTokenId;
+            newSwap.initiatorETHPortion = msg.value;
+            newSwap.acceptorETHPortion = _acceptorETHPortion;
+
+            swaps[newSwapId] = newSwap;
 
             emit SwapInitiated(newSwapId, msg.sender, _acceptor);
         }
@@ -105,12 +104,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
 
         delete swaps[_swapId];
 
-        emit SwapComplete(
-        _swapId,
-        swap.initiator,
-        swap.acceptor,
-        swap
-    );
+        emit SwapComplete(_swapId, swap.initiator, swap.acceptor, swap);
     }
 
     function withdraw() external nonReentrant {
@@ -130,6 +124,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     }
 
     function removeSwap(uint256 _swapId) external nonReentrant {
+        // return eth balance if needs be
         Swap memory swap = swaps[_swapId];
 
         if (swap.swapId == 0) {
@@ -142,9 +137,18 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
 
         delete swaps[_swapId];
 
+        if(swap.initiatorETHPortion > 0){
+            balances[msg.sender] = balances[msg.sender] + swap.initiatorETHPortion;
+        }      
+
         emit SwapRemoved(_swapId, msg.sender);
     }
 
+    // error scenarios:
+    // contract 1 does not exist
+    // contract 2 does not exist
+    // token 1 does not exist
+    // token 2 does not exist
     function getSwapStatus(uint256 _swapId)
         external
         view
@@ -189,19 +193,3 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     }
 }
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-contract MyToken is ERC721, Ownable {
-    uint256 private _nextTokenId;
-
-    constructor(address initialOwner)
-        ERC721("MyToken", "MTK")
-        Ownable(initialOwner)
-    {}
-
-    function safeMint(address to) public {
-        uint256 tokenId = _nextTokenId++;
-        _safeMint(to, tokenId);
-    }
-}
