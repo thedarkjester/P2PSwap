@@ -67,6 +67,21 @@ describe("ERC721Swapper", function () {
       const address = await myToken.getAddress();
       expect(address).to.not.be.empty;
     });
+
+    it("Should deploy removalReentryTester", async function () {
+      const address = await removalReentryTester.getAddress();
+      expect(address).to.not.be.empty;
+    });
+  });
+
+  describe("ETH Transfer", function () {
+    it("Fails if direct and hits receive", async function () {
+      await expect(owner.sendTransaction({ to: erc721SwapperAddress, value: 1 })).to.be.revertedWithCustomError(erc721Swapper, "DirectFundingDisallowed");
+    });
+
+    it("Fails if function does not exist and hits fallback", async function () {
+      await expect(owner.sendTransaction({ to: erc721SwapperAddress, value: 1 , data: "0xdeadbeef"})).to.be.revertedWithCustomError(erc721Swapper, "DirectFundingDisallowed");
+    });
   });
 
   describe("Swap initiation", function () {
@@ -155,6 +170,51 @@ describe("ERC721Swapper", function () {
 
       const swapCountId = await erc721Swapper.swapId();
       expect(swapCountId).equal(ethers.toBigInt(3));
+    });
+  });
+
+  describe("Getting swap status", function () {
+    it("Fails if the swap does not exist", async function () {
+      await expect(erc721Swapper.getSwapStatus(ethers.toBigInt(1))).to.be.revertedWithCustomError(erc721Swapper, "SwapCompleteOrDoesNotExist");
+    });
+
+    it("Returns true for ownership and false for approvals", async function () {
+      await erc721Swapper.connect(swapper1).initiateSwap(myTokenAddress, myTokenAddress, swapper2, ethers.toBigInt(GENERIC_SWAP_ETH), ethers.toBigInt(1), ethers.toBigInt(2));
+
+      let swapStatus: IERC721Swapper.SwapStatusStruct = await erc721Swapper.getSwapStatus(ethers.toBigInt(1));
+
+      expect(swapStatus.initiatorOwnsToken).true;
+      expect(swapStatus.acceptorOwnsToken).true;
+      expect(swapStatus.initiatorApprovalsSet).false;
+      expect(swapStatus.acceptorApprovalsSet).false;
+    });
+
+    it("Returns all true for ownership and approvals", async function () {
+      await erc721Swapper.connect(swapper1).initiateSwap(myTokenAddress, myTokenAddress, swapper2, ethers.toBigInt(GENERIC_SWAP_ETH), ethers.toBigInt(1), ethers.toBigInt(2));
+
+      await myToken.connect(swapper1).approve(erc721SwapperAddress, 1);
+      await myToken.connect(swapper2).approve(erc721SwapperAddress, 2);
+
+      let swapStatus: IERC721Swapper.SwapStatusStruct = await erc721Swapper.getSwapStatus(ethers.toBigInt(1));
+
+      expect(swapStatus.initiatorOwnsToken).true;
+      expect(swapStatus.acceptorOwnsToken).true;
+      expect(swapStatus.initiatorApprovalsSet).true;
+      expect(swapStatus.acceptorApprovalsSet).true;
+    });
+
+    it("Returns all false when no ownership", async function () {
+      await erc721Swapper.connect(swapper1).initiateSwap(myTokenAddress, myTokenAddress, swapper2, ethers.toBigInt(GENERIC_SWAP_ETH), ethers.toBigInt(1), ethers.toBigInt(2));
+
+      await myToken.connect(swapper1).transferFrom(swapper1.address, erc721SwapperAddress, 1);
+      await myToken.connect(swapper2).transferFrom(swapper2.address, erc721SwapperAddress, 2);
+
+      let swapStatus: IERC721Swapper.SwapStatusStruct = await erc721Swapper.getSwapStatus(ethers.toBigInt(1));
+
+      expect(swapStatus.initiatorOwnsToken).false;
+      expect(swapStatus.acceptorOwnsToken).false;
+      expect(swapStatus.initiatorApprovalsSet).false;
+      expect(swapStatus.acceptorApprovalsSet).false;
     });
   });
 
