@@ -13,8 +13,6 @@ interface IERC721Swapper {
     error DirectFundingDisallowed();
     error ETHSendingFailed();
 
-    event BoolDebug(string str, bool val);
-
     event SwapInitiated(
         uint256 indexed swapId,
         address indexed initiator,
@@ -48,5 +46,23 @@ interface IERC721Swapper {
         bool initiatorApprovalsSet;
         bool acceptorApprovalsSet;
     }
-}
 
+    function initiateSwap(
+        address _initiatorNftContract,
+        address _acceptorNftContract,
+        address _acceptor,
+        uint256 _acceptorETHPortion,
+        uint256 _initiatorTokenId,
+        uint256 _acceptorTokenId
+    ) external payable;
+
+    function completeSwap(uint256 _swapId) external payable;
+
+    function removeSwap(uint256 _swapId) external;
+
+    function withdraw() external;
+
+    function getSwapStatus(
+        uint256 _swapId
+    ) external view returns (SwapStatus memory swapStatus);
+}
