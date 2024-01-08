@@ -72,8 +72,12 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
       revert NotAcceptor();
     }
 
-    if (swap.acceptorETHPortion > 0 && swap.acceptorETHPortion != msg.value) {
-      revert IncorrectOrMissingAcceptorETH();
+    if (swap.initiatorETHPortion > 0 && msg.value > 0) {
+      revert TwoWayEthPortionsDisallowed();
+    }
+
+    if (swap.acceptorETHPortion != msg.value) {
+      revert IncorrectOrMissingAcceptorETH(swap.acceptorETHPortion);
     }
 
     IERC721 initiatorNftContract = IERC721(swap.initiatorNftContract);
@@ -87,7 +91,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     }
 
     if (swap.initiatorETHPortion > 0) {
-      balances[swap.initiator] = balances[swap.acceptor] + swap.initiatorETHPortion;
+      balances[swap.acceptor] = balances[swap.acceptor] + swap.initiatorETHPortion;
     }
 
     delete swaps[_swapId];

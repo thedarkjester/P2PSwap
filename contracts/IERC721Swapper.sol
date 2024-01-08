@@ -9,7 +9,7 @@ interface IERC721Swapper {
   error EmptyWithdrawDisallowed();
   error NotAcceptor();
   error NotInitiator();
-  error IncorrectOrMissingAcceptorETH();
+  error IncorrectOrMissingAcceptorETH(uint256 expectedETHPortion);
   error DirectFundingDisallowed();
   error ETHSendingFailed();
 
