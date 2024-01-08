@@ -33,10 +33,10 @@ contract ReentryTester is IERC721Receiver {
     uint256 tokenId,
     bytes calldata data
   ) external returns (bytes4) {
-    if(tokenId == 1){
+    if (tokenId == 1) {
       completeSwap(1, swapperAddress);
     }
-   
+
     return IERC721Receiver.onERC721Received.selector;
   }
 
@@ -60,7 +60,7 @@ contract ReentryTester is IERC721Receiver {
     swapperAddress = _swapperAddress;
     swapper.completeSwap(_swapId);
   }
-  
+
   receive() external payable {
     IERC721Swapper swapper = IERC721Swapper(msg.sender);
     swapper.withdraw();
