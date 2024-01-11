@@ -5,18 +5,32 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC721Swapper } from "./IERC721Swapper.sol";
 
+/// @title A simple NFT swapper contract with no fee takers.
+/// @author The Dark Jester
+/// @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
+/// @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
 contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
   address private constant ZERO_ADDRESS = address(0);
 
   mapping(address => uint256) public balances;
 
-  // deployer pays for the slot vs. the first swapper.
+  // Deployer pays for the slot vs. the first swapper. Being kind.
   uint256 public swapId = 1;
 
-  // contractAddress => tokenId
+  // swapId=>Swap
   mapping(uint256 => Swap) public swaps;
 
-  /// @dev - some contracts have NFT at 0..
+  /**
+   * @notice Initiates a swap of two NFTs.
+   * @dev If ETH is sent, it is used as the initiator ETH portion.
+   * @dev msg.sender is the initiator.
+   * @param _initiatorNftContract The NFT contract address of the initiator.
+   * @param _acceptorNftContract The NFT contract address of the acceptor.
+   * @param _acceptor The acceptor address of the swap.
+   * @param _acceptorETHPortion The ETH portion to be provided by the acceptor.
+   * @param _initiatorTokenId The initiator's NFT token ID.
+   * @param _acceptorTokenId The acceptos's NFT token ID.
+   */
   function initiateSwap(
     address _initiatorNftContract,
     address _acceptorNftContract,
@@ -61,6 +75,13 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     }
   }
 
+  /**
+   * @notice Completes the swap.
+   * @dev If ETH is sent, it is used as the acceptor ETH portion.
+   * @dev msg.sender is the acceptor.
+   * @dev The ETH portion is added to either the acceptor or the initiator balance.
+   * @param _swapId The ID of the swap.
+   */
   function completeSwap(uint256 _swapId) external payable nonReentrant {
     Swap memory swap = swaps[_swapId];
 
@@ -99,24 +120,13 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     emit SwapComplete(_swapId, swap.initiator, swap.acceptor, swap);
   }
 
-  function withdraw() external nonReentrant {
-    uint256 callerBalance = balances[msg.sender];
-
-    if (callerBalance == 0) {
-      revert EmptyWithdrawDisallowed();
-    }
-
-    balances[msg.sender] = 0;
-
-    (bool success, ) = msg.sender.call{ value: callerBalance }("");
-
-    if (!success) {
-      revert ETHSendingFailed();
-    }
-  }
-
+  /**
+   * @notice Cancels/Removes the swap if not accepted.
+   * @dev msg.sender is the initiator.
+   * @dev The Initiator ETH portion is added to the initiator balance if exists.
+   * @param _swapId The ID of the swap.
+   */
   function removeSwap(uint256 _swapId) external {
-    // return eth balance if needs be
     Swap memory swap = swaps[_swapId];
 
     if (swap.swapId == 0) {
@@ -136,11 +146,36 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     emit SwapRemoved(_swapId, msg.sender);
   }
 
-  // error scenarios:
-  // contract 1 does not exist
-  // contract 2 does not exist
-  // token 1 does not exist
-  // token 2 does not exist
+  /**
+   * @notice Withdraws the msg.sender's balance if it exists.
+   * @dev The ETH balance is sent to the msg.sender.
+   */
+  function withdraw() external nonReentrant {
+    uint256 callerBalance = balances[msg.sender];
+
+    if (callerBalance == 0) {
+      revert EmptyWithdrawDisallowed();
+    }
+
+    balances[msg.sender] = 0;
+
+    (bool success, ) = msg.sender.call{ value: callerBalance }("");
+
+    if (!success) {
+      revert ETHSendingFailed();
+    }
+  }
+
+  /**
+   * @notice Retrieves the NFT status.
+   * @param _swapId The ID of the swap.
+   * @dev Unhandled error scenarios:
+   * @dev  contract 1 does not exist.
+   * @dev contract 2 does not exist.
+   * @dev token 1 does not exist.
+   * @dev token 2 does not exist.
+   * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
+   */
   function getSwapStatus(uint256 _swapId) external view returns (SwapStatus memory swapStatus) {
     Swap memory swap = swaps[_swapId];
 
