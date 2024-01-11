@@ -12,6 +12,7 @@ import { IERC721Swapper } from "./IERC721Swapper.sol";
 contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
   address private constant ZERO_ADDRESS = address(0);
 
+  // user account => balance
   mapping(address => uint256) public balances;
 
   // Deployer pays for the slot vs. the first swapper. Being kind.
