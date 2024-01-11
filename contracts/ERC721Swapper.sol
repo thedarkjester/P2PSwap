@@ -58,19 +58,17 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     unchecked {
       uint256 newSwapId = swapId++;
 
-      Swap memory newSwap;
-
-      newSwap.swapId = newSwapId;
-      newSwap.initiatorNftContract = _initiatorNftContract;
-      newSwap.acceptorNftContract = _acceptorNftContract;
-      newSwap.initiator = msg.sender;
-      newSwap.initiatorTokenId = _initiatorTokenId;
-      newSwap.acceptor = _acceptor;
-      newSwap.acceptorTokenId = _acceptorTokenId;
-      newSwap.initiatorETHPortion = msg.value;
-      newSwap.acceptorETHPortion = _acceptorETHPortion;
-
-      swaps[newSwapId] = newSwap;
+      swaps[newSwapId] = Swap({
+        swapId: newSwapId,
+        initiatorNftContract: _initiatorNftContract,
+        acceptorNftContract: _acceptorNftContract,
+        initiator: msg.sender,
+        initiatorTokenId: _initiatorTokenId,
+        acceptor: _acceptor,
+        acceptorTokenId: _acceptorTokenId,
+        initiatorETHPortion: msg.value,
+        acceptorETHPortion: _acceptorETHPortion
+      });
 
       emit SwapInitiated(newSwapId, msg.sender, _acceptor);
     }
@@ -109,11 +107,17 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     acceptorNftContract.safeTransferFrom(swap.acceptor, swap.initiator, swap.acceptorTokenId);
 
     if (msg.value > 0) {
-      balances[swap.initiator] = balances[swap.initiator] + msg.value;
+      unchecked {
+        // msg.value should never overflow - nobody has that amount of ETH
+        balances[swap.initiator] += msg.value;
+      }
     }
 
     if (swap.initiatorETHPortion > 0) {
-      balances[swap.acceptor] = balances[swap.acceptor] + swap.initiatorETHPortion;
+      unchecked {
+        // This should never overflow - portion is either zero or a number way less that max uint256
+        balances[swap.acceptor] += swap.initiatorETHPortion;
+      }
     }
 
     delete swaps[_swapId];
@@ -141,7 +145,10 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     delete swaps[_swapId];
 
     if (swap.initiatorETHPortion > 0) {
-      balances[msg.sender] = balances[msg.sender] + swap.initiatorETHPortion;
+      unchecked {
+        // msg.value should never overflow - nobody has that amount of ETH
+        balances[msg.sender] += swap.initiatorETHPortion;
+      }
     }
 
     emit SwapRemoved(_swapId, msg.sender);
