@@ -5,9 +5,7 @@ async function main() {
 
   await swapper.waitForDeployment();
 
-  console.log(
-    `ERC721Swapper contract Deployed at address ${await swapper.getAddress()}`,
-  );
+  console.log(`ERC721Swapper contract Deployed at address ${await swapper.getAddress()}`);
 }
 
 main().catch((error) => {

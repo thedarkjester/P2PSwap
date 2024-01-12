@@ -24,7 +24,6 @@ interface IERC721Swapper {
   event SwapComplete(uint256 indexed swapId, address indexed initiator, address indexed acceptor, Swap swap);
 
   /**
-   * @dev swapId is the unique ID for the swap.
    * @dev initiatorNftContract is the contract address for the initiator's NFT.
    * @dev acceptorNftContract is the contract address for the acceptors's NFT (may be same as initiator's).
    * @dev initiator is the address for the account initiating the swap.
@@ -35,8 +34,7 @@ interface IERC721Swapper {
    * @dev acceptorETHPortion is the ETH sweetener to be provided by the acceptor.
    */
   struct Swap {
-    uint256 swapId; // 1 slot 32 bytes
-    address initiatorNftContract; // 20 bytes next slot
+    address initiatorNftContract; // 20 bytes slot 1
     address acceptorNftContract; // 20 bytes same slot
     address initiator; // 20 bytes same slot
     uint256 initiatorTokenId; // next slot 32 bytes

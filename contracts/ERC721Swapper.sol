@@ -61,7 +61,6 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
       uint256 newSwapId = swapId++;
 
       swaps[newSwapId] = Swap({
-        swapId: newSwapId,
         initiatorNftContract: _initiatorNftContract,
         acceptorNftContract: _acceptorNftContract,
         initiator: msg.sender,
@@ -86,7 +85,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
   function completeSwap(uint256 _swapId) external payable nonReentrant {
     Swap memory swap = swaps[_swapId];
 
-    if (swap.swapId == 0) {
+    if (swap.initiator == ZERO_ADDRESS) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -136,7 +135,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
   function removeSwap(uint256 _swapId) external {
     Swap memory swap = swaps[_swapId];
 
-    if (swap.swapId == 0) {
+    if (swap.initiator == ZERO_ADDRESS) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -189,7 +188,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
   function getSwapStatus(uint256 _swapId) external view returns (SwapStatus memory swapStatus) {
     Swap memory swap = swaps[_swapId];
 
-    if (swap.swapId == 0) {
+    if (swap.initiator == ZERO_ADDRESS) {
       revert SwapCompleteOrDoesNotExist();
     }
 

@@ -165,7 +165,6 @@ describe("ERC721Swapper", function () {
 
       const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
 
-      expect(swap.swapId).equal(1);
       expect(swap.initiatorNftContract).equal(myTokenAddress);
       expect(swap.acceptorNftContract).equal(myTokenAddress);
       expect(swap.initiator).equal(swapper1.address);
@@ -190,7 +189,6 @@ describe("ERC721Swapper", function () {
 
       const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
 
-      expect(swap.swapId).equal(1);
       expect(swap.initiatorNftContract).equal(myTokenAddress);
       expect(swap.acceptorNftContract).equal(myTokenAddress);
       expect(swap.initiator).equal(swapper1.address);
@@ -232,7 +230,6 @@ describe("ERC721Swapper", function () {
 
       let swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
 
-      expect(swap.swapId).equal(ethers.toBigInt(1));
       expect(swap.initiatorNftContract).equal(myTokenAddress);
       expect(swap.acceptorNftContract).equal(myTokenAddress);
       expect(swap.initiator).equal(swapper1.address);
@@ -255,7 +252,6 @@ describe("ERC721Swapper", function () {
 
       swap = await erc721Swapper.swaps(ethers.toBigInt(2));
 
-      expect(swap.swapId).equal(ethers.toBigInt(2));
       expect(swap.initiatorNftContract).equal(myTokenAddress);
       expect(swap.acceptorNftContract).equal(myTokenAddress);
       expect(swap.initiator).equal(swapper1.address);
@@ -376,9 +372,6 @@ describe("ERC721Swapper", function () {
           ethers.toBigInt(2),
         );
 
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1)); // the rest is tested elsewhere
-
       await erc721Swapper.connect(swapper1).removeSwap(1);
 
       await expect(erc721Swapper.connect(swapper1).removeSwap(1)).to.be.revertedWithCustomError(
@@ -404,7 +397,6 @@ describe("ERC721Swapper", function () {
 
       swap = await erc721Swapper.swaps(ethers.toBigInt(1));
 
-      expect(swap.swapId).equal(ethers.toBigInt(0)); // the rest is tested elsewhere
       expect(swap.initiatorNftContract).equal(ethers.ZeroAddress);
       expect(swap.acceptorNftContract).equal(ethers.ZeroAddress);
       expect(swap.initiator).equal(ethers.ZeroAddress);
@@ -534,9 +526,6 @@ describe("ERC721Swapper", function () {
 
   describe("Swap completion", function () {
     it("Fails when does not exist", async function () {
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(0));
-
       await expect(erc721Swapper.connect(swapper2).completeSwap(1)).to.be.revertedWithCustomError(
         erc721Swapper,
         "SwapCompleteOrDoesNotExist",
@@ -555,9 +544,6 @@ describe("ERC721Swapper", function () {
           ethers.toBigInt(2),
           { value: ethers.parseEther("1") },
         );
-
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
 
       await expect(erc721Swapper.connect(swapper1).completeSwap(1)).to.be.revertedWithCustomError(
         erc721Swapper,
@@ -578,9 +564,6 @@ describe("ERC721Swapper", function () {
           { value: ethers.parseEther("1") },
         );
 
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
-
       await expect(erc721Swapper.connect(swapper2).completeSwap(1, { value: 1 })).to.be.revertedWithCustomError(
         erc721Swapper,
         "TwoWayEthPortionsDisallowed",
@@ -598,9 +581,6 @@ describe("ERC721Swapper", function () {
           ethers.toBigInt(1),
           ethers.toBigInt(4),
         );
-
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
 
       await myToken.connect(swapper1).approve(erc721SwapperAddress, 1);
       await reentryTester.approveToken(4, myTokenAddress, erc721SwapperAddress);
@@ -623,9 +603,6 @@ describe("ERC721Swapper", function () {
           ethers.toBigInt(2),
         );
 
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
-
       await expect(erc721Swapper.connect(swapper2).completeSwap(1, { value: 1 }))
         .to.be.revertedWithCustomError(erc721Swapper, "IncorrectOrMissingAcceptorETH")
         .withArgs(GENERIC_SWAP_ETH);
@@ -646,13 +623,9 @@ describe("ERC721Swapper", function () {
       await myToken.connect(swapper1).approve(erc721SwapperAddress, 1);
       await myToken.connect(swapper2).approve(erc721SwapperAddress, 2);
 
-      let swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
-
       await erc721Swapper.connect(swapper2).completeSwap(1);
 
-      swap = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(0));
+      const swap = await erc721Swapper.swaps(ethers.toBigInt(1));
       expect(swap.initiatorNftContract).equal(ethers.ZeroAddress);
       expect(swap.acceptorNftContract).equal(ethers.ZeroAddress);
       expect(swap.initiator).equal(ethers.ZeroAddress);
@@ -679,7 +652,6 @@ describe("ERC721Swapper", function () {
       await myToken.connect(swapper2).approve(erc721SwapperAddress, 2);
 
       const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
 
       expect(await erc721Swapper.connect(swapper2).completeSwap(1))
         .to.emit(erc721Swapper, "SwapComplete")
@@ -700,9 +672,6 @@ describe("ERC721Swapper", function () {
 
       await myToken.connect(swapper1).approve(erc721SwapperAddress, 1);
       await myToken.connect(swapper2).approve(erc721SwapperAddress, 2);
-
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
 
       let token1Owner = await myToken.ownerOf(1);
       let token2Owner = await myToken.ownerOf(2);
@@ -746,9 +715,6 @@ describe("ERC721Swapper", function () {
       await myToken.connect(swapper1).approve(erc721SwapperAddress, 1);
       await myToken.connect(swapper2).approve(erc721SwapperAddress, 2);
 
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
-
       let token1Owner = await myToken.ownerOf(1);
       let token2Owner = await myToken.ownerOf(2);
       let swapper1Balance = await erc721Swapper.balances(swapper1.address);
@@ -789,9 +755,6 @@ describe("ERC721Swapper", function () {
 
       await myToken.connect(swapper1).approve(erc721SwapperAddress, 1);
       await myToken.connect(swapper2).approve(erc721SwapperAddress, 2);
-
-      const swap: IERC721Swapper.SwapStruct = await erc721Swapper.swaps(ethers.toBigInt(1));
-      expect(swap.swapId).equal(ethers.toBigInt(1));
 
       let token1Owner = await myToken.ownerOf(1);
       let token2Owner = await myToken.ownerOf(2);

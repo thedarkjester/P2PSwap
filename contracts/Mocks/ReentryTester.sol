@@ -28,12 +28,7 @@ contract ReentryTester is IERC721Receiver {
     );
   }
 
-  function onERC721Received(
-    address operator,
-    address from,
-    uint256 tokenId,
-    bytes calldata data
-  ) external returns (bytes4) {
+  function onERC721Received(address, address, uint256 tokenId, bytes calldata) external returns (bytes4) {
     if (tokenId == 1) {
       completeSwap(1, swapperAddress);
     }
