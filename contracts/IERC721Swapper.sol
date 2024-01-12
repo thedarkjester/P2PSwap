@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-/// @title A simple NFT swapper contract with no fee takers.
-/// @author The Dark Jester
-/// @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
-/// @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
+/**
+ * @title A simple NFT swapper contract with no fee takers.
+ * @author The Dark Jester
+ * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
+ * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
+ */
 interface IERC721Swapper {
   /**
    * @dev Emitted when a new swap is initiated.

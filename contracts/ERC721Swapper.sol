@@ -5,10 +5,12 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC721Swapper } from "./IERC721Swapper.sol";
 
-/// @title A simple NFT swapper contract with no fee takers.
-/// @author The Dark Jester
-/// @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
-/// @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
+/**
+ * @title A simple NFT swapper contract with no fee takers.
+ * @author The Dark Jester
+ * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
+ * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
+ */
 contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
   address private constant ZERO_ADDRESS = address(0);
 
