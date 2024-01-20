@@ -20,7 +20,7 @@ There are three main flavours of swap (yes, yes, for those super detail oriented
 
 1. Straightup 1 for 1 swap - NFT for NFT, no ETH changes hands.
 2. pI sweetens the deal by sending some additional ETH along with the NFT. (e.g. pI's Ape + 0.1 ETH for pA's Squiggle).
-3. aI is expected to sweeten the deal. (e.g. pI's Ape for pA's Squiggle + 0.2 ETH ).
+3. pA is expected to sweeten the deal. (e.g. pI's Ape for pA's Squiggle + 0.2 ETH ).
 
 ## How do you set up a swap then?
 
