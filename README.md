@@ -26,9 +26,9 @@ There are three main flavours of swap (yes, yes, for those super detail oriented
 
 After discussing agreed terms, `pI will set up the swap` with those terms.  
 
-**`Super important note for pI`:** If pA doesn't accept the swap, pI can always retrieve their sent ETH if any and remove the swap.
+**`Super important note for pI`:** If pA doesn't accept the swap, pI can always retrieve their sent ETH if any and remove the swap. (`removeSwap` function)
 
-1. pI interacts with the swapper contract and gives the following information:
+1. pI interacts with the swapper contract and gives the following information: (`initiateSwap` function)
 
     a. pI's NFT Contract address
 
@@ -56,7 +56,7 @@ After discussing agreed terms, `pI will set up the swap` with those terms.
 
     d. The swapper contract has approval for pA's token.
 
-5. pA accepts the swap (sending ETH if the swap is expecting pA to sweeten the deal) and boom, the NFTs change owners. 
+5. pA accepts the swap (sending ETH if the swap is expecting pA to sweeten the deal) and boom, the NFTs change owners. (`completeSwap` function)
 6. If pI or pA sweetened the deal with ETH, pI or pA can then `withdraw` their ETH from the contract at their leisure. Why didn't this happen automatically? - best practice is to use a withdraw pattern to keep operations discrete.
 
 At this point it is important to note that the Swapper contract immediately loses approval for both NFTs because they have changed ownership.
@@ -73,3 +73,8 @@ npx hardhat test
 REPORT_GAS=true npx hardhat test
 npx hardhat run scripts/deploy.ts
 ```
+
+3. To find swaps you have initiated filter the `SwapInitiated` event with your address at topic 2.
+4. To find swaps you have been added to accept filter the `SwapInitiated` event with your address at topic 3.
+5. To check if you have removed a swap as the initiator filter the `SwapRemoved` event with your address at topic 2 or the swapId at topic 1.
+6. To check if the swap has been completed, filter the `SwapComplete` event with either the swapId at topic 1, the initiator at 2 or acceptor at 3. The full swap details are in the data part of the event (Swap struct).
