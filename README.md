@@ -38,9 +38,11 @@ After discussing agreed terms, `pI will set up the swap` with those terms.
 
     d. pA's NFT Token Id
 
-    e. Optional: ETH to sweeten the deal
+    e. pA's address
 
-    f. Optional: An ETH value that pA is expected to sweeten the deal with
+    f. Optional: ETH to sweeten the deal
+
+    g. Optional: An ETH value that pA is expected to sweeten the deal with
 
     **`Only one side can sweeten the deal as you might expect, it would be silly otherwise`**
 
