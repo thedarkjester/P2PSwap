@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC721Swapper } from "./IERC721Swapper.sol";
 
@@ -11,7 +10,7 @@ import { IERC721Swapper } from "./IERC721Swapper.sol";
  * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
+contract ERC721Swapper is IERC721Swapper {
   address private constant ZERO_ADDRESS = address(0);
 
   // user account => balance
@@ -82,7 +81,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
    * @dev The ETH portion is added to either the acceptor or the initiator balance.
    * @param _swapId The ID of the swap.
    */
-  function completeSwap(uint256 _swapId) external payable nonReentrant {
+  function completeSwap(uint256 _swapId) external payable {
     Swap memory swap = swaps[_swapId];
 
     if (swap.initiator == ZERO_ADDRESS) {
@@ -104,9 +103,6 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     IERC721 initiatorNftContract = IERC721(swap.initiatorNftContract);
     IERC721 acceptorNftContract = IERC721(swap.acceptorNftContract);
 
-    initiatorNftContract.safeTransferFrom(swap.initiator, swap.acceptor, swap.initiatorTokenId);
-    acceptorNftContract.safeTransferFrom(swap.acceptor, swap.initiator, swap.acceptorTokenId);
-
     if (msg.value > 0) {
       unchecked {
         // msg.value should never overflow - nobody has that amount of ETH
@@ -122,6 +118,9 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
     }
 
     delete swaps[_swapId];
+
+    initiatorNftContract.safeTransferFrom(swap.initiator, swap.acceptor, swap.initiatorTokenId);
+    acceptorNftContract.safeTransferFrom(swap.acceptor, swap.initiator, swap.acceptorTokenId);
 
     emit SwapComplete(_swapId, swap.initiator, swap.acceptor, swap);
   }
@@ -159,7 +158,7 @@ contract ERC721Swapper is IERC721Swapper, ReentrancyGuard {
    * @notice Withdraws the msg.sender's balance if it exists.
    * @dev The ETH balance is sent to the msg.sender.
    */
-  function withdraw() external nonReentrant {
+  function withdraw() external {
     uint256 callerBalance = balances[msg.sender];
 
     if (callerBalance == 0) {

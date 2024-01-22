@@ -9,7 +9,7 @@ In our examples we will use two people who want to swap their NFTs, we shall cal
 These two parties find themselves chatting across various communities, Discord, X (Twitter), Farcaster, whatever, and decide they want to swap NFTs.
 
 ## Do I make fees or commission or anything on swaps?
-Nope, nada, zilch, nothing, diddly squat - I get nothing out of this. So why did I set this up? This is because a) I can, b) I want people to have a way to swap more easily that paying crazy fees to swap, or having to go through tons of hoops to get it done without having to trust people will just send them.
+Nope, nada, zilch, nothing, diddly squat - I get nothing out of this. So why did I set this up? This is because a) I can, b) I want people to have a way to swap more easily than paying crazy fees to swap, or having to go through tons of hoops to get it done without having to trust people will just send them.
 
 ## Can I upgrade or make changes to rug?
 Nope, the contract is not upgradeable and has no owners, everything is based on swap configuration and whoever interacts with the contract.

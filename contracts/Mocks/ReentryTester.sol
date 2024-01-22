@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
-
 import { IERC721Swapper } from "../IERC721Swapper.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -33,6 +32,11 @@ contract ReentryTester is IERC721Receiver {
       completeSwap(1, swapperAddress);
     }
 
+    if (tokenId == 2) {
+      IERC721Swapper swapper = IERC721Swapper(swapperAddress);
+      swapper.removeSwap(1);
+    }
+
     return IERC721Receiver.onERC721Received.selector;
   }
 
@@ -55,6 +59,10 @@ contract ReentryTester is IERC721Receiver {
     IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
     swapperAddress = _swapperAddress;
     swapper.completeSwap(_swapId);
+  }
+
+  function setSwapperAddress(address _swapperAddress) external {
+    swapperAddress = _swapperAddress;
   }
 
   receive() external payable {
