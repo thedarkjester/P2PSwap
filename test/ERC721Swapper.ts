@@ -39,6 +39,7 @@ describe("ERC721Swapper", function () {
 
   // swapper 1 has 2 tokens to start (0,1)
   // swapper 2 has 2 tokens to start (2,3)
+  // reentry has 1 token to start (4)
   async function mintTokensToSwap() {
     await myToken.connect(owner).safeMint(swapper1.address);
     await myToken.connect(owner).safeMint(swapper1.address);
@@ -587,7 +588,7 @@ describe("ERC721Swapper", function () {
 
       await expect(reentryTester.completeSwap(1, erc721SwapperAddress)).to.be.revertedWithCustomError(
         erc721Swapper,
-        "ReentrancyGuardReentrantCall",
+        "SwapCompleteOrDoesNotExist",
       );
     });
 
@@ -739,6 +740,39 @@ describe("ERC721Swapper", function () {
 
       expect(swapper1Balance).equal(0);
       expect(swapper2Balance).equal(GENERIC_SWAP_ETH);
+    });
+
+    it("Swaps ownership with acceptor balance being updated and initiator malicious contract trying to remove early", async function () {
+      await reentryTester.initiateSwap(
+        myTokenAddress,
+        myTokenAddress,
+        swapper2,
+        ethers.toBigInt(0),
+        ethers.toBigInt(4),
+        ethers.toBigInt(2),
+        erc721SwapperAddress,
+        { value: GENERIC_SWAP_ETH },
+      );
+
+      await reentryTester.approveToken(4, myTokenAddress, erc721SwapperAddress);
+      await myToken.connect(swapper2).approve(erc721SwapperAddress, 2);
+
+      const token1Owner = await myToken.ownerOf(2);
+      const token2Owner = await myToken.ownerOf(4);
+      const swapper1Balance = await erc721Swapper.balances(swapper1.address);
+      const swapper2Balance = await erc721Swapper.balances(reentryTesterAddress);
+
+      expect(swapper1Balance).equal(0);
+      expect(swapper2Balance).equal(0);
+
+      expect(token1Owner).equal(swapper2.address);
+      expect(token2Owner).equal(reentryTesterAddress);
+
+      await reentryTester.setSwapperAddress(erc721SwapperAddress);
+      await expect(erc721Swapper.connect(swapper2).completeSwap(1)).to.be.revertedWithCustomError(
+        erc721Swapper,
+        "SwapCompleteOrDoesNotExist",
+      );
     });
 
     it("Swaps ownership with initiator balance being updated", async function () {
