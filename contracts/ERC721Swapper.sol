@@ -100,9 +100,6 @@ contract ERC721Swapper is IERC721Swapper {
       revert IncorrectOrMissingAcceptorETH(swap.acceptorETHPortion);
     }
 
-    IERC721 initiatorNftContract = IERC721(swap.initiatorNftContract);
-    IERC721 acceptorNftContract = IERC721(swap.acceptorNftContract);
-
     if (msg.value > 0) {
       unchecked {
         // msg.value should never overflow - nobody has that amount of ETH
@@ -117,7 +114,11 @@ contract ERC721Swapper is IERC721Swapper {
       }
     }
 
+    // trash this as the deal is done and any reentry fails
     delete swaps[_swapId];
+
+    IERC721 initiatorNftContract = IERC721(swap.initiatorNftContract);
+    IERC721 acceptorNftContract = IERC721(swap.acceptorNftContract);
 
     initiatorNftContract.safeTransferFrom(swap.initiator, swap.acceptor, swap.initiatorTokenId);
     acceptorNftContract.safeTransferFrom(swap.acceptor, swap.initiator, swap.acceptorTokenId);
