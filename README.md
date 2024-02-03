@@ -69,7 +69,7 @@ At this point it is important to note that the Swapper contract immediately lose
 
 ## Notes for the Devs
 
-1. The `nonReentrant modifier is technically redundant` and can actually be removed. It was really left in for those who skim the contract and want non reentrancy surety. A different contract will be deployed for those who want the cheaper gas.
+1. `A nonReentrant modifier was used and removed as is technically redundant`
 
 2. The following tasks can be run:
 
