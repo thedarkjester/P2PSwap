@@ -11,7 +11,7 @@ interface IERC721Swapper {
   /**
    * @dev Emitted when a new swap is initiated.
    */
-  event SwapInitiated(uint256 indexed swapId, address indexed initiator, address indexed acceptor);
+  event SwapInitiated(uint256 indexed swapId, address indexed initiator, address indexed acceptor, Swap swap);
 
   /**
    * @dev Emitted when a new swap is removed by the initiator.
@@ -94,11 +94,6 @@ interface IERC721Swapper {
   error IncorrectOrMissingAcceptorETH(uint256 expectedETHPortion);
 
   /**
-   * @dev Thrown when ETH is sent directly to the contract.
-   */
-  error DirectFundingDisallowed();
-
-  /**
    * @dev Thrown when the destination for the ETH reverts acceptance.
    */
   error ETHSendingFailed();
@@ -107,21 +102,9 @@ interface IERC721Swapper {
    * @notice Initiates a swap of two NFTs.
    * @dev If ETH is sent, it is used as the initiator ETH portion.
    * @dev msg.sender is the initiator.
-   * @param _initiatorNftContract The NFT contract address of the initiator.
-   * @param _acceptorNftContract The NFT contract address of the acceptor.
-   * @param _acceptor The acceptor address of the swap.
-   * @param _acceptorETHPortion The ETH portion to be provided by the acceptor.
-   * @param _initiatorTokenId The initiator's NFT token ID.
-   * @param _acceptorTokenId The acceptos's NFT token ID.
+   * @param _swap The full swap details.
    */
-  function initiateSwap(
-    address _initiatorNftContract,
-    address _acceptorNftContract,
-    address _acceptor,
-    uint256 _acceptorETHPortion,
-    uint256 _initiatorTokenId,
-    uint256 _acceptorTokenId
-  ) external payable;
+  function initiateSwap(Swap calldata _swap) external payable;
 
   /**
    * @notice Completes the swap.
@@ -129,16 +112,18 @@ interface IERC721Swapper {
    * @dev msg.sender is the acceptor.
    * @dev The ETH portion is added to either the acceptor or the initiator balance.
    * @param _swapId The ID of the swap.
+   * @param _swap The full swap data as retrieved from the initiating event.
    */
-  function completeSwap(uint256 _swapId) external payable;
+  function completeSwap(uint256 _swapId, Swap calldata _swap) external payable;
 
   /**
    * @notice Cancels/Removes the swap if not accepted.
    * @dev msg.sender is the initiator.
    * @dev The Initiator ETH portion is added to the initiator balance if exists.
    * @param _swapId The ID of the swap.
+   * @param _swap The full swap data as retrieved from the initiating event.
    */
-  function removeSwap(uint256 _swapId) external;
+  function removeSwap(uint256 _swapId, Swap calldata _swap) external;
 
   /**
    * @notice Withdraws the msg.sender's balance if it exists.
@@ -149,6 +134,7 @@ interface IERC721Swapper {
   /**
    * @notice Retrieves the NFT status.
    * @param _swapId The ID of the swap.
+   * @param _swap The full swap details.
    * @dev Unhandled error scenarios:
    * @dev  contract 1 does not exist.
    * @dev contract 2 does not exist.
@@ -156,7 +142,7 @@ interface IERC721Swapper {
    * @dev token 2 does not exist.
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
-  function getSwapStatus(uint256 _swapId) external view returns (SwapStatus memory swapStatus);
+  function getSwapStatus(uint256 _swapId, Swap calldata _swap) external view returns (SwapStatus memory swapStatus);
 }
 
 /*   
