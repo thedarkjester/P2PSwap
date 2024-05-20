@@ -6,6 +6,7 @@ import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Rec
 
 contract ReentryTester is IERC721Receiver {
   address private swapperAddress;
+  address private target;
 
   function initiateSwap(
     address _initiatorNftContract,
@@ -17,24 +18,55 @@ contract ReentryTester is IERC721Receiver {
     address _swapperAddress
   ) external payable {
     IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
-    swapper.initiateSwap{ value: msg.value }(
-      _initiatorNftContract,
-      _acceptorNftContract,
-      _acceptor,
-      _acceptorETHPortion,
-      _initiatorTokenId,
-      _acceptorTokenId
-    );
+
+    IERC721Swapper.Swap memory swap = IERC721Swapper.Swap({
+      initiatorNftContract: _initiatorNftContract,
+      acceptorNftContract: _acceptorNftContract,
+      initiator: address(this),
+      initiatorTokenId: _initiatorTokenId,
+      acceptor: _acceptor,
+      acceptorTokenId: _acceptorTokenId,
+      initiatorETHPortion: msg.value,
+      acceptorETHPortion: _acceptorETHPortion
+    });
+
+    swapper.initiateSwap{ value: msg.value }(swap);
   }
 
   function onERC721Received(address, address, uint256 tokenId, bytes calldata) external returns (bytes4) {
     if (tokenId == 1) {
-      completeSwap(1, swapperAddress);
+      IERC721Swapper.Swap memory swap = IERC721Swapper.Swap({
+        initiatorNftContract: msg.sender,
+        acceptorNftContract: msg.sender,
+        initiator: target,
+        initiatorTokenId: 1,
+        acceptor: address(this),
+        acceptorTokenId: 4,
+        initiatorETHPortion: 0,
+        acceptorETHPortion: 0
+      });
+
+      swap.initiator = target;
+      IERC721Swapper swapper = IERC721Swapper(swapperAddress);
+      swapperAddress = swapperAddress;
+      swapper.completeSwap(1, swap);
     }
 
     if (tokenId == 2) {
-      IERC721Swapper swapper = IERC721Swapper(swapperAddress);
-      swapper.removeSwap(1);
+      IERC721Swapper.Swap memory swap = IERC721Swapper.Swap({
+        initiatorNftContract: msg.sender,
+        acceptorNftContract: msg.sender,
+        initiator: address(this),
+        initiatorTokenId: 1,
+        acceptor: target,
+        acceptorTokenId: 2,
+        initiatorETHPortion: 1 ether,
+        acceptorETHPortion: 0
+      });
+
+      IERC721Swapper swapperRemover = IERC721Swapper(swapperAddress);
+      swapperAddress = swapperAddress;
+      swapperRemover.removeSwap(2, swap);
     }
 
     return IERC721Receiver.onERC721Received.selector;
@@ -50,15 +82,24 @@ contract ReentryTester is IERC721Receiver {
     nftContract.approve(_swapperAddress, _tokenId);
   }
 
-  function removeSwap(uint256 _swapId, address _swapperAddress) external {
+  function removeSwap(uint256 _swapId, address _swapperAddress, IERC721Swapper.Swap calldata _swap) external {
+    target = _swap.acceptor;
     IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
-    swapper.removeSwap(_swapId);
+    swapper.removeSwap(_swapId, _swap);
   }
 
-  function completeSwap(uint256 _swapId, address _swapperAddress) public {
+  function completeSwap(uint256 _swapId, address _swapperAddress, IERC721Swapper.Swap calldata _swap) public {
+    target = _swap.initiator;
+
     IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
     swapperAddress = _swapperAddress;
-    swapper.completeSwap(_swapId);
+    swapper.completeSwap(_swapId, _swap);
+  }
+
+  function completeProperSwap(uint256 _swapId, address _swapperAddress, IERC721Swapper.Swap calldata _swap) public {
+    IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
+    swapperAddress = _swapperAddress;
+    swapper.completeSwap(_swapId, _swap);
   }
 
   function setSwapperAddress(address _swapperAddress) external {

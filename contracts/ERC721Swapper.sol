@@ -19,58 +19,30 @@ contract ERC721Swapper is IERC721Swapper {
   // Deployer pays for the slot vs. the first swapper. Being kind.
   uint256 public swapId = 1;
 
-  // swapId=>Swap
-  mapping(uint256 => Swap) public swaps;
+  mapping(uint256 id => bytes32 hashedSwap) public swapHashes;
 
-  /**
-   * @notice Initiates a swap of two NFTs.
-   * @dev If ETH is sent, it is used as the initiator ETH portion.
-   * @dev msg.sender is the initiator.
-   * @param _initiatorNftContract The NFT contract address of the initiator.
-   * @param _acceptorNftContract The NFT contract address of the acceptor.
-   * @param _acceptor The acceptor address of the swap.
-   * @param _acceptorETHPortion The ETH portion to be provided by the acceptor.
-   * @param _initiatorTokenId The initiator's NFT token ID.
-   * @param _acceptorTokenId The acceptos's NFT token ID.
-   */
-  function initiateSwap(
-    address _initiatorNftContract,
-    address _acceptorNftContract,
-    address _acceptor,
-    uint256 _acceptorETHPortion,
-    uint256 _initiatorTokenId,
-    uint256 _acceptorTokenId
-  ) external payable {
-    if (_initiatorNftContract == ZERO_ADDRESS) {
+  function initiateSwap(Swap calldata _swap) external payable {
+    if (_swap.initiatorNftContract == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
     }
-    if (_acceptorNftContract == ZERO_ADDRESS) {
+    if (_swap.acceptorNftContract == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
     }
 
-    if (_acceptor == ZERO_ADDRESS) {
+    if (_swap.acceptor == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
     }
 
-    if (msg.value > 0 && _acceptorETHPortion > 0) {
+    if (msg.value > 0 && _swap.acceptorETHPortion > 0) {
       revert TwoWayEthPortionsDisallowed();
     }
 
     unchecked {
       uint256 newSwapId = swapId++;
+      swapHashes[newSwapId] = hashSwap(_swap);
 
-      swaps[newSwapId] = Swap({
-        initiatorNftContract: _initiatorNftContract,
-        acceptorNftContract: _acceptorNftContract,
-        initiator: msg.sender,
-        initiatorTokenId: _initiatorTokenId,
-        acceptor: _acceptor,
-        acceptorTokenId: _acceptorTokenId,
-        initiatorETHPortion: msg.value,
-        acceptorETHPortion: _acceptorETHPortion
-      });
-
-      emit SwapInitiated(newSwapId, msg.sender, _acceptor);
+      // _swap emitted for to acceptor to pass in later
+      emit SwapInitiated(newSwapId, msg.sender, _swap.acceptor, _swap);
     }
   }
 
@@ -80,50 +52,46 @@ contract ERC721Swapper is IERC721Swapper {
    * @dev msg.sender is the acceptor.
    * @dev The ETH portion is added to either the acceptor or the initiator balance.
    * @param _swapId The ID of the swap.
+   * @param _swap The swap data to use and verify.
    */
-  function completeSwap(uint256 _swapId) external payable {
-    Swap memory swap = swaps[_swapId];
-
-    if (swap.initiator == ZERO_ADDRESS) {
+  function completeSwap(uint256 _swapId, Swap calldata _swap) external payable {
+    if (swapHashes[_swapId] != hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    if (swap.acceptor != msg.sender) {
+    if (_swap.acceptor != msg.sender) {
       revert NotAcceptor();
     }
 
-    if (swap.initiatorETHPortion > 0 && msg.value > 0) {
+    if (_swap.initiatorETHPortion > 0 && msg.value > 0) {
       revert TwoWayEthPortionsDisallowed();
     }
 
-    if (swap.acceptorETHPortion != msg.value) {
-      revert IncorrectOrMissingAcceptorETH(swap.acceptorETHPortion);
+    if (_swap.acceptorETHPortion != msg.value) {
+      revert IncorrectOrMissingAcceptorETH(_swap.acceptorETHPortion);
     }
 
     if (msg.value > 0) {
       unchecked {
         // msg.value should never overflow - nobody has that amount of ETH
-        balances[swap.initiator] += msg.value;
-      }
-    }
-
-    if (swap.initiatorETHPortion > 0) {
-      unchecked {
-        // This should never overflow - portion is either zero or a number way less that max uint256
-        balances[swap.acceptor] += swap.initiatorETHPortion;
+        balances[_swap.initiator] += msg.value;
       }
     }
 
     // trash this as the deal is done and any reentry fails
-    delete swaps[_swapId];
+    delete swapHashes[_swapId];
 
-    IERC721 initiatorNftContract = IERC721(swap.initiatorNftContract);
-    IERC721 acceptorNftContract = IERC721(swap.acceptorNftContract);
+    if (_swap.initiatorETHPortion > 0) {
+      unchecked {
+        // This should never overflow - portion is either zero or a number way less that max uint256
+        balances[_swap.acceptor] += _swap.initiatorETHPortion;
+      }
+    }
 
-    initiatorNftContract.safeTransferFrom(swap.initiator, swap.acceptor, swap.initiatorTokenId);
-    acceptorNftContract.safeTransferFrom(swap.acceptor, swap.initiator, swap.acceptorTokenId);
+    IERC721(_swap.initiatorNftContract).safeTransferFrom(_swap.initiator, _swap.acceptor, _swap.initiatorTokenId);
+    IERC721(_swap.acceptorNftContract).safeTransferFrom(_swap.acceptor, _swap.initiator, _swap.acceptorTokenId);
 
-    emit SwapComplete(_swapId, swap.initiator, swap.acceptor, swap);
+    emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
   }
 
   /**
@@ -132,23 +100,21 @@ contract ERC721Swapper is IERC721Swapper {
    * @dev The Initiator ETH portion is added to the initiator balance if exists.
    * @param _swapId The ID of the swap.
    */
-  function removeSwap(uint256 _swapId) external {
-    Swap memory swap = swaps[_swapId];
-
-    if (swap.initiator == ZERO_ADDRESS) {
+  function removeSwap(uint256 _swapId, Swap calldata _swap) external {
+    if (swapHashes[_swapId] != hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    if (swap.initiator != msg.sender) {
+    if (_swap.initiator != msg.sender) {
       revert NotInitiator();
     }
 
-    delete swaps[_swapId];
+    delete swapHashes[_swapId];
 
-    if (swap.initiatorETHPortion > 0) {
+    if (_swap.initiatorETHPortion > 0) {
       unchecked {
         // msg.value should never overflow - nobody has that amount of ETH
-        balances[msg.sender] += swap.initiatorETHPortion;
+        balances[msg.sender] += _swap.initiatorETHPortion;
       }
     }
 
@@ -168,7 +134,11 @@ contract ERC721Swapper is IERC721Swapper {
 
     balances[msg.sender] = 0;
 
-    (bool success, ) = msg.sender.call{ value: callerBalance }("");
+    bool success;
+
+    assembly {
+      success := call(gas(), caller(), callerBalance, 0, 0, 0, 0)
+    }
 
     if (!success) {
       revert ETHSendingFailed();
@@ -178,42 +148,41 @@ contract ERC721Swapper is IERC721Swapper {
   /**
    * @notice Retrieves the NFT status.
    * @param _swapId The ID of the swap.
-   * @dev Unhandled error scenarios:
-   * @dev  contract 1 does not exist.
-   * @dev contract 2 does not exist.
-   * @dev token 1 does not exist.
-   * @dev token 2 does not exist.
+   * @param _swap The swap details.
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
-  function getSwapStatus(uint256 _swapId) external view returns (SwapStatus memory swapStatus) {
-    Swap memory swap = swaps[_swapId];
-
-    if (swap.initiator == ZERO_ADDRESS) {
+  function getSwapStatus(uint256 _swapId, Swap calldata _swap) external view returns (SwapStatus memory swapStatus) {
+    if (swapHashes[_swapId] != hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    IERC721 initiatorNftContract = IERC721(swap.initiatorNftContract);
+    IERC721 initiatorNftContract = IERC721(_swap.initiatorNftContract);
 
-    address initiatorTokenOwner = initiatorNftContract.ownerOf(swap.initiatorTokenId);
-    swapStatus.initiatorOwnsToken = initiatorTokenOwner == swap.initiator;
+    address initiatorTokenOwner = initiatorNftContract.ownerOf(_swap.initiatorTokenId);
+    swapStatus.initiatorOwnsToken = initiatorTokenOwner == _swap.initiator;
 
-    address initiatorApproved = initiatorNftContract.getApproved(swap.initiatorTokenId);
+    address initiatorApproved = initiatorNftContract.getApproved(_swap.initiatorTokenId);
     swapStatus.initiatorApprovalsSet = initiatorApproved == address(this);
 
-    IERC721 acceptorNftContract = IERC721(swap.acceptorNftContract);
-    address acceptorTokenOwner = acceptorNftContract.ownerOf(swap.acceptorTokenId);
-    swapStatus.acceptorOwnsToken = acceptorTokenOwner == swap.acceptor;
+    IERC721 acceptorNftContract = IERC721(_swap.acceptorNftContract);
+    address acceptorTokenOwner = acceptorNftContract.ownerOf(_swap.acceptorTokenId);
+    swapStatus.acceptorOwnsToken = acceptorTokenOwner == _swap.acceptor;
 
-    address acceptorApproved = acceptorNftContract.getApproved(swap.initiatorTokenId);
+    address acceptorApproved = acceptorNftContract.getApproved(_swap.acceptorTokenId);
     swapStatus.acceptorApprovalsSet = acceptorApproved == address(this);
   }
 
-  fallback() external payable {
-    revert DirectFundingDisallowed();
-  }
-
-  receive() external payable {
-    revert DirectFundingDisallowed();
+  /**
+   * @notice Gas efficient swap hashing using inline assembly.
+   * @dev The struct is calldata throughout.
+   * @param _swap The full Swap struct.
+   */
+  function hashSwap(Swap calldata _swap) internal pure returns (bytes32 swapHash) {
+    assembly {
+      let mPtr := mload(0x40)
+      calldatacopy(mPtr, _swap, 0x100)
+      swapHash := keccak256(mPtr, 0x100)
+    }
   }
 }
 

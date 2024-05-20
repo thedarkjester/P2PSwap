@@ -5,6 +5,9 @@ const config: HardhatUserConfig = {
   paths: {
     artifacts: "./build",
   },
+  gasReporter: {
+    enabled: true,
+  },
   solidity: {
     compilers: [
       {
