@@ -3,6 +3,8 @@
 ## Where is the official deploy at?
 https://etherscan.io/address/0xa487cebf0e08249b8e976554167187cd76fcc09a
 
+**THIS IS ABOUT TO BE REDPLOYED FOR GAS OPTIMIZATIONS**
+
 ## Ok, so what is this ERC721 Swapper thing? 
 
 The ERC721 Swapper is a way for two parties to swap NFTs from either the same collection, or across two collections. One party can also sweeten the deal with ETH, but isn't mandatory - depends on the swap's deal.
@@ -75,7 +77,6 @@ At this point it is important to note that the Swapper contract immediately lose
 
 ```shell
 npx hardhat test
-REPORT_GAS=true npx hardhat test
 npx hardhat run scripts/deploy.ts
 ```
 
@@ -83,3 +84,4 @@ npx hardhat run scripts/deploy.ts
 4. To find swaps you have been added to accept filter the `SwapInitiated` event with your address at topic 3.
 5. To check if you have removed a swap as the initiator filter the `SwapRemoved` event with your address at topic 2 or the swapId at topic 1.
 6. To check if the swap has been completed, filter the `SwapComplete` event with either the swapId at topic 1, the initiator at 2 or acceptor at 3. The full swap details are in the data part of the event (Swap struct).
+7. Use the event Swap Struct data for all the functions.
