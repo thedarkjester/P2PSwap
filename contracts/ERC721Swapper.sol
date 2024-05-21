@@ -30,7 +30,7 @@ contract ERC721Swapper is IERC721Swapper {
    * @dev msg.sender is the initiator.
    * @param _swap The full swap details.
    */
-  function initiateSwap(Swap calldata _swap) external payable {
+  function initiateSwap(Swap memory _swap) external payable {
     if (_swap.initiatorNftContract == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
     }
@@ -50,7 +50,7 @@ contract ERC721Swapper is IERC721Swapper {
       uint256 newSwapId = swapId++;
       swapHashes[newSwapId] = hashSwap(_swap);
 
-      // _swap emitted for to acceptor to pass in later
+      // _swap emitted to pass in later when querying, completing or removing
       emit SwapInitiated(newSwapId, msg.sender, _swap.acceptor, _swap);
     }
   }
@@ -63,7 +63,7 @@ contract ERC721Swapper is IERC721Swapper {
    * @param _swapId The ID of the swap.
    * @param _swap The swap data to use and verify.
    */
-  function completeSwap(uint256 _swapId, Swap calldata _swap) external payable {
+  function completeSwap(uint256 _swapId, Swap memory _swap) external payable {
     if (swapHashes[_swapId] != hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
@@ -109,7 +109,7 @@ contract ERC721Swapper is IERC721Swapper {
    * @dev The Initiator ETH portion is added to the initiator balance if exists.
    * @param _swapId The ID of the swap.
    */
-  function removeSwap(uint256 _swapId, Swap calldata _swap) external {
+  function removeSwap(uint256 _swapId, Swap memory _swap) external {
     if (swapHashes[_swapId] != hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
@@ -147,9 +147,9 @@ contract ERC721Swapper is IERC721Swapper {
     assembly {
       let success := call(gas(), caller(), callerBalance, 0, 0, 0, 0)
       if iszero(success) {
-         let ptr := mload(0x40)
-          mstore(ptr, errorSelector)
-          revert(ptr, 0x4)
+        let ptr := mload(0x40)
+        mstore(ptr, errorSelector)
+        revert(ptr, 0x4)
       }
     }
   }
@@ -160,7 +160,7 @@ contract ERC721Swapper is IERC721Swapper {
    * @param _swap The swap details.
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
-  function getSwapStatus(uint256 _swapId, Swap calldata _swap) external view returns (SwapStatus memory swapStatus) {
+  function getSwapStatus(uint256 _swapId, Swap memory _swap) external view returns (SwapStatus memory swapStatus) {
     if (swapHashes[_swapId] != hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
@@ -182,10 +182,10 @@ contract ERC721Swapper is IERC721Swapper {
    * so to hash it we use 0x100 (256), or 8*32 (256) bytes.
    * @param _swap The full Swap struct.
    */
-  function hashSwap(Swap calldata _swap) internal pure returns (bytes32 swapHash) {
+  function hashSwap(Swap memory _swap) internal pure returns (bytes32 swapHash) {
     assembly {
       let mPtr := mload(0x40)
-      calldatacopy(mPtr, _swap, 0x100)
+      mcopy(mPtr, _swap, 0x100)
       swapHash := keccak256(mPtr, 0x100)
     }
   }
