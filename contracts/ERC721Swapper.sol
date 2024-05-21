@@ -141,16 +141,16 @@ contract ERC721Swapper is IERC721Swapper {
       revert EmptyWithdrawDisallowed();
     }
 
-    balances[msg.sender] = 0;
+    delete balances[msg.sender];
 
-    bool success;
-
+    bytes4 errorSelector = IERC721Swapper.ETHSendingFailed.selector;
     assembly {
-      success := call(gas(), caller(), callerBalance, 0, 0, 0, 0)
-    }
-
-    if (!success) {
-      revert ETHSendingFailed();
+      let success := call(gas(), caller(), callerBalance, 0, 0, 0, 0)
+      if iszero(success) {
+         let ptr := mload(0x40)
+          mstore(ptr, errorSelector)
+          revert(ptr, 0x4)
+      }
     }
   }
 
