@@ -77,6 +77,7 @@ At this point it is important to note that the Swapper contract immediately lose
 
 ```shell
 npx hardhat test
+npx hardhat test --parallel
 npx hardhat run scripts/deploy.ts
 ```
 

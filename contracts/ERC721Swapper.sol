@@ -27,7 +27,10 @@ contract ERC721Swapper is IERC721Swapper {
   /**
    * @notice Initiates a swap of two NFTs.
    * @dev If ETH is sent, it is used as the initiator ETH portion.
-   * @dev msg.sender is the initiator.
+   * @dev NB: Some invariant conditions:
+   * @dev msg.sender is validated to be the initiator, and,
+   * This is deliberate so that nobody and do it without you knowing.
+   * @dev msg.value must match the _swap.initiatorETHPortion to avoid sneaky exploits.
    * @param _swap The full swap details.
    */
   function initiateSwap(Swap memory _swap) external payable {
@@ -40,6 +43,14 @@ contract ERC721Swapper is IERC721Swapper {
 
     if (_swap.acceptor == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
+    }
+
+    if (msg.sender != _swap.initiator) {
+      revert InitiatorNotMatched(_swap.initiator, msg.sender);
+    }
+
+    if (msg.value != _swap.initiatorETHPortion) {
+      revert InitiatorEthPortionNotMatched(_swap.initiatorETHPortion, msg.value);
     }
 
     if (msg.value > 0 && _swap.acceptorETHPortion > 0) {
