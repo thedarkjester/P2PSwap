@@ -110,7 +110,14 @@ describe("ERC721Swapper", function () {
       );
     });
 
-    it("Fails with acceptor empty address", async function () {
+    it("Fails with acceptor mismatched to msg.sender", async function () {
+      defaultSwap.initiator = reentryTesterAddress;
+      await expect(erc721Swapper.connect(swapper1).initiateSwap(defaultSwap))
+        .to.be.revertedWithCustomError(erc721Swapper, "InitiatorNotMatched")
+        .withArgs(reentryTesterAddress, swapper1Address);
+    });
+
+    it("Fails with acceptor mismatched", async function () {
       defaultSwap.acceptor = ethers.ZeroAddress;
       await expect(erc721Swapper.initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         erc721Swapper,
@@ -118,7 +125,19 @@ describe("ERC721Swapper", function () {
       );
     });
 
+    it("Fails with initiator ETH Portion does not match msg.value", async function () {
+      defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH + GENERIC_SWAP_ETH;
+      await expect(
+        erc721Swapper.connect(swapper1).initiateSwap(defaultSwap, {
+          value: ethers.toBigInt(GENERIC_SWAP_ETH),
+        }),
+      )
+        .to.be.revertedWithCustomError(erc721Swapper, "InitiatorEthPortionNotMatched")
+        .withArgs(defaultSwap.initiatorETHPortion, GENERIC_SWAP_ETH);
+    });
+
     it("Fails with both acceptor and initiator ETH Portion", async function () {
+      defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
       await expect(
         erc721Swapper.connect(swapper1).initiateSwap(defaultSwap, {
@@ -150,9 +169,8 @@ describe("ERC721Swapper", function () {
 
     it("Initiates swap and emits SwapInitiated event", async function () {
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
-      await erc721Swapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      expect(await erc721Swapper.initiateSwap(defaultSwap))
+      expect(await erc721Swapper.connect(swapper1).initiateSwap(defaultSwap))
         .to.emit(erc721Swapper, "SwapInitiated")
         .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
     });
@@ -310,7 +328,7 @@ describe("ERC721Swapper", function () {
       defaultSwap.acceptor = reentryTesterAddress;
       defaultSwap.initiator = swapper2Address;
 
-      await erc721Swapper.initiateSwap(defaultSwap);
+      await erc721Swapper.connect(swapper2).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
 
       await reentryTester.approveToken(5n, myTokenAddress, erc721SwapperAddress);
       await myToken.connect(swapper2).approve(erc721SwapperAddress, 3n);
@@ -387,7 +405,7 @@ describe("ERC721Swapper", function () {
     it("Fails when not sending ETH and initiator also sent ETH", async function () {
       defaultSwap.initiatorETHPortion = ethers.parseEther("1");
 
-      await erc721Swapper.connect(swapper1).initiateSwap(defaultSwap);
+      await erc721Swapper.connect(swapper1).initiateSwap(defaultSwap, { value: ethers.parseEther("1") });
 
       await expect(
         erc721Swapper.connect(swapper2).completeSwap(1, defaultSwap, { value: 1 }),
@@ -477,7 +495,7 @@ describe("ERC721Swapper", function () {
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       defaultSwap.acceptorETHPortion = 0n;
 
-      await erc721Swapper.connect(swapper1).initiateSwap(defaultSwap);
+      await erc721Swapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
 
       await myToken.connect(swapper1).approve(erc721SwapperAddress, 1);
       await myToken.connect(swapper2).approve(erc721SwapperAddress, 2);

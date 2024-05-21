@@ -10,16 +10,26 @@ pragma solidity 0.8.24;
 interface IERC721Swapper {
   /**
    * @dev Emitted when a new swap is initiated.
+   * @param swapId The unique swapId.
+   * @param initiator The initiator address.
+   * @param acceptor The acceptor address.
+   * @param swap The full swap data.
    */
   event SwapInitiated(uint256 indexed swapId, address indexed initiator, address indexed acceptor, Swap swap);
 
   /**
    * @dev Emitted when a new swap is removed by the initiator.
+   * @param swapId The unique swapId.
+   * @param initiator The initiator address.
    */
   event SwapRemoved(uint256 indexed swapId, address indexed initiator);
 
   /**
    * @dev Emitted when a new swap is completed by the acceptor.
+   * @param swapId The unique swapId.
+   * @param initiator The initiator address.
+   * @param acceptor The acceptor address.
+   * @param swap The full swap data.
    */
   event SwapComplete(uint256 indexed swapId, address indexed initiator, address indexed acceptor, Swap swap);
 
@@ -90,6 +100,7 @@ interface IERC721Swapper {
 
   /**
    * @dev Thrown when ETH is not provided on completing the swap.
+   * @param expectedETHPortion The expected ETH portion.
    */
   error IncorrectOrMissingAcceptorETH(uint256 expectedETHPortion);
 
@@ -97,6 +108,20 @@ interface IERC721Swapper {
    * @dev Thrown when the destination for the ETH reverts acceptance.
    */
   error ETHSendingFailed();
+
+  /**
+   * @dev Thrown when the initiator in the config does not match the msg.sender.
+   * @param expected The expected initiator address.
+   * @param actual The actual initiator address (msg.sender).
+   */
+  error InitiatorNotMatched(address expected, address actual);
+
+  /**
+   * @dev Thrown when the initiator ETH portion does not match the msg.value.
+   * @param expected The expected initator ETH portion.
+   * @param actual The actual initator ETH portion (msg.value).
+   */
+  error InitiatorEthPortionNotMatched(uint256 expected, uint256 actual);
 
   /**
    * @notice Initiates a swap of two NFTs.

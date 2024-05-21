@@ -1,7 +1,6 @@
 # NFTSwapper
 
 ## Where is the official deploy at?
-https://etherscan.io/address/0xa487cebf0e08249b8e976554167187cd76fcc09a
 
 **THIS IS ABOUT TO BE REDPLOYED FOR GAS OPTIMIZATIONS**
 
@@ -77,6 +76,7 @@ At this point it is important to note that the Swapper contract immediately lose
 
 ```shell
 npx hardhat test
+npx hardhat test --parallel
 npx hardhat run scripts/deploy.ts
 ```
 
