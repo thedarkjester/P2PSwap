@@ -1,7 +1,6 @@
 # NFTSwapper
 
 ## Where is the official deploy at?
-https://etherscan.io/address/0xa487cebf0e08249b8e976554167187cd76fcc09a
 
 **THIS IS ABOUT TO BE REDPLOYED FOR GAS OPTIMIZATIONS**
 
