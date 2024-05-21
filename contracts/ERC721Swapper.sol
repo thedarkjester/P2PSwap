@@ -21,6 +21,15 @@ contract ERC721Swapper is IERC721Swapper {
 
   mapping(uint256 id => bytes32 hashedSwap) public swapHashes;
 
+  /// @dev This exists purely to drop the deployment cost by a few hundred gas.
+  constructor() payable {}
+
+  /**
+   * @notice Initiates a swap of two NFTs.
+   * @dev If ETH is sent, it is used as the initiator ETH portion.
+   * @dev msg.sender is the initiator.
+   * @param _swap The full swap details.
+   */
   function initiateSwap(Swap calldata _swap) external payable {
     if (_swap.initiatorNftContract == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
@@ -169,6 +178,8 @@ contract ERC721Swapper is IERC721Swapper {
   /**
    * @notice Gas efficient swap hashing using inline assembly.
    * @dev The struct is calldata throughout.
+   * @dev There are 8 items in the struct, each using 32 bytes in calldata when used,
+   * so to hash it we use 0x100 (256), or 8*32 (256) bytes.
    * @param _swap The full Swap struct.
    */
   function hashSwap(Swap calldata _swap) internal pure returns (bytes32 swapHash) {
