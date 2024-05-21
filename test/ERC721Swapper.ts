@@ -374,7 +374,9 @@ describe("ERC721Swapper", function () {
       let balance = await erc721Swapper.balances(swapper1.address);
       expect(balance).greaterThan(0);
 
-      await erc721Swapper.connect(swapper1).withdraw();
+      await expect(erc721Swapper.connect(swapper1).withdraw())
+        .to.emit(erc721Swapper, "BalanceWithDrawn")
+        .withArgs(swapper1Address, balance);
 
       balance = await erc721Swapper.balances(swapper1.address);
       expect(balance).equal(0);
