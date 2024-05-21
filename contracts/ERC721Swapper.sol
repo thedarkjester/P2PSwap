@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.22;
+pragma solidity 0.8.24;
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC721Swapper } from "./IERC721Swapper.sol";
@@ -158,18 +158,12 @@ contract ERC721Swapper is IERC721Swapper {
 
     IERC721 initiatorNftContract = IERC721(_swap.initiatorNftContract);
 
-    address initiatorTokenOwner = initiatorNftContract.ownerOf(_swap.initiatorTokenId);
-    swapStatus.initiatorOwnsToken = initiatorTokenOwner == _swap.initiator;
-
-    address initiatorApproved = initiatorNftContract.getApproved(_swap.initiatorTokenId);
-    swapStatus.initiatorApprovalsSet = initiatorApproved == address(this);
+    swapStatus.initiatorOwnsToken = initiatorNftContract.ownerOf(_swap.initiatorTokenId) == _swap.initiator;
+    swapStatus.initiatorApprovalsSet = initiatorNftContract.getApproved(_swap.initiatorTokenId) == address(this);
 
     IERC721 acceptorNftContract = IERC721(_swap.acceptorNftContract);
-    address acceptorTokenOwner = acceptorNftContract.ownerOf(_swap.acceptorTokenId);
-    swapStatus.acceptorOwnsToken = acceptorTokenOwner == _swap.acceptor;
-
-    address acceptorApproved = acceptorNftContract.getApproved(_swap.acceptorTokenId);
-    swapStatus.acceptorApprovalsSet = acceptorApproved == address(this);
+    swapStatus.acceptorOwnsToken = acceptorNftContract.ownerOf(_swap.acceptorTokenId) == _swap.acceptor;
+    swapStatus.acceptorApprovalsSet = acceptorNftContract.getApproved(_swap.acceptorTokenId) == address(this);
   }
 
   /**
