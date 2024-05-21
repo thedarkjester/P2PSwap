@@ -14,7 +14,7 @@ contract ERC721Swapper is IERC721Swapper {
   address private constant ZERO_ADDRESS = address(0);
 
   // user account => balance
-  mapping(address => uint256) public balances;
+  mapping(address userAddress => uint256 balance) public balances;
 
   // Deployer pays for the slot vs. the first swapper. Being kind.
   uint256 public swapId = 1;
@@ -91,27 +91,27 @@ contract ERC721Swapper is IERC721Swapper {
       revert IncorrectOrMissingAcceptorETH(_swap.acceptorETHPortion);
     }
 
+    /// @dev Doing this prevents reentry.
+    delete swapHashes[_swapId];
+
     if (msg.value > 0) {
       unchecked {
-        // msg.value should never overflow - nobody has that amount of ETH
+        /// @dev msg.value should never overflow - nobody has that amount of ETH.
         balances[_swap.initiator] += msg.value;
       }
     }
 
-    // trash this as the deal is done and any reentry fails
-    delete swapHashes[_swapId];
-
     if (_swap.initiatorETHPortion > 0) {
       unchecked {
-        // This should never overflow - portion is either zero or a number way less that max uint256
+        /// @dev This should never overflow - portion is either zero or a number way less that max uint256.
         balances[_swap.acceptor] += _swap.initiatorETHPortion;
       }
     }
 
+    emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
+
     IERC721(_swap.initiatorNftContract).safeTransferFrom(_swap.initiator, _swap.acceptor, _swap.initiatorTokenId);
     IERC721(_swap.acceptorNftContract).safeTransferFrom(_swap.acceptor, _swap.initiator, _swap.acceptorTokenId);
-
-    emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
   }
 
   /**
@@ -153,6 +153,8 @@ contract ERC721Swapper is IERC721Swapper {
     }
 
     delete balances[msg.sender];
+
+    emit BalanceWithDrawn(msg.sender, callerBalance);
 
     bytes4 errorSelector = IERC721Swapper.ETHSendingFailed.selector;
     assembly {

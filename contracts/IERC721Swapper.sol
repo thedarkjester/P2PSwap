@@ -25,6 +25,13 @@ interface IERC721Swapper {
   event SwapRemoved(uint256 indexed swapId, address indexed initiator);
 
   /**
+   * @dev Emitted when a a user withdraws their balance.
+   * @param user The user address withdrawing a balance.
+   * @param amount The amount being withdrawn.
+   */
+  event BalanceWithDrawn(address indexed user, uint256 amount);
+
+  /**
    * @dev Emitted when a new swap is completed by the acceptor.
    * @param swapId The unique swapId.
    * @param initiator The initiator address.
@@ -44,14 +51,14 @@ interface IERC721Swapper {
    * @dev acceptorETHPortion is the ETH sweetener to be provided by the acceptor.
    */
   struct Swap {
-    address initiatorNftContract; // 20 bytes slot 1
-    address acceptorNftContract; // 20 bytes same slot
-    address initiator; // 20 bytes same slot
-    uint256 initiatorTokenId; // next slot 32 bytes
-    address acceptor; // 20 bytes next slot
-    uint256 acceptorTokenId; // next slot 32 bytes
-    uint256 initiatorETHPortion; // next slot 32 bytes
-    uint256 acceptorETHPortion; // next slot 32 bytes
+    address initiatorNftContract;
+    address acceptorNftContract;
+    address initiator;
+    uint256 initiatorTokenId;
+    address acceptor;
+    uint256 acceptorTokenId;
+    uint256 initiatorETHPortion;
+    uint256 acceptorETHPortion;
   }
 
   /**
