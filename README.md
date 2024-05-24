@@ -2,7 +2,7 @@
 
 ## Where is the official deploy at?
 
-**THIS IS ABOUT TO BE REDPLOYED FOR GAS OPTIMIZATIONS**
+[Verified contract on Etherscan](https://etherscan.io/address/0xeb85ef5be169362473eb535c60bc2a1dcfba1bc8#code)
 
 ## Ok, so what is this ERC721 Swapper thing? 
 
