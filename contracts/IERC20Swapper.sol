@@ -141,6 +141,16 @@ interface IERC20Swapper {
   error TransferToAcceptorFailed();
 
   /**
+   * @dev Thrown when the initiator swap has no value to swap.
+   */
+  error MissingInitiatorSwapValues();
+
+  /**
+   * @dev Thrown when the acceptor swap has no value to swap.
+   */
+  error MissingAcceptorSwapValues();
+
+  /**
    * @notice Initiates a swap of two NFTs.
    * @dev If ETH is sent, it is used as the initiator ETH portion.
    * @dev msg.sender is the initiator.

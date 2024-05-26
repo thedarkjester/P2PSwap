@@ -116,6 +116,24 @@ describe("erc20Swapper", function () {
       );
     });
 
+    it("Fails with empty initiator values", async function () {
+      defaultSwap.initiatorTokenAmount = 0n;
+      defaultSwap.initiatorETHPortion = 0n;
+      await expect(erc20Swapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        erc20Swapper,
+        "MissingInitiatorSwapValues",
+      );
+    });
+
+    it("Fails with empty acceptor values", async function () {
+      defaultSwap.acceptorETHPortion = 0n;
+      defaultSwap.acceptorTokenAmount = 0n;
+      await expect(erc20Swapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        erc20Swapper,
+        "MissingAcceptorSwapValues",
+      );
+    });
+
     it("Fails with empty acceptor contract address", async function () {
       defaultSwap.acceptorErcContract = ethers.ZeroAddress;
       await expect(erc20Swapper.initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
@@ -417,6 +435,61 @@ describe("erc20Swapper", function () {
       expect(swapHash).equal(ethers.ZeroHash);
     });
 
+    it("Increases the initiator balance if ETH Portion sent and no initiator tokens sent", async function () {
+      defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.initiatorTokenAmount = 0n;
+
+      await erc20Swapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
+
+      await erc20B.connect(swapper2).approve(erc20SwapperAddress, 500n);
+
+      const swapper2ABalance = await erc20A.balanceOf(swapper2Address);
+      const swapper1BBalance = await erc20B.balanceOf(swapper1Address);
+      const swapper1Balance = await erc20Swapper.balances(swapper1.address);
+      const swapper2Balance = await erc20Swapper.balances(swapper2.address);
+
+      expect(swapper1Balance).equal(0);
+      expect(swapper2Balance).equal(0);
+
+      expect(swapper2ABalance).equal(0n);
+      expect(swapper1BBalance).equal(0n);
+
+      expect(await erc20Swapper.connect(swapper2).completeSwap(1, defaultSwap))
+        .to.emit(erc20Swapper, "SwapComplete")
+        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+
+      expect(await erc20A.balanceOf(swapper2Address)).equal(swapper2ABalance);
+      expect(await erc20B.balanceOf(swapper1Address)).equal(500n);
+    });
+
+    it("Increases the acceptor balance if ETH Portion sent and no acceptor tokens sent", async function () {
+      defaultSwap.initiatorETHPortion = 0n;
+      defaultSwap.acceptorTokenAmount = 0n;
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+
+      await erc20Swapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await erc20A.connect(swapper1).approve(erc20SwapperAddress, 500n);
+
+      const swapper2ABalance = await erc20A.balanceOf(swapper2Address);
+      const swapper1BBalance = await erc20B.balanceOf(swapper1Address);
+      const swapper1Balance = await erc20Swapper.balances(swapper1.address);
+      const swapper2Balance = await erc20Swapper.balances(swapper2.address);
+
+      expect(swapper1Balance).equal(0);
+      expect(swapper2Balance).equal(0);
+
+      expect(swapper2ABalance).equal(0n);
+      expect(swapper1BBalance).equal(0n);
+
+      expect(await erc20Swapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH }))
+        .to.emit(erc20Swapper, "SwapComplete")
+        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+
+      expect(await erc20B.balanceOf(swapper1Address)).equal(swapper1BBalance);
+      expect(await erc20A.balanceOf(swapper2Address)).equal(500n);
+    });
+
     it("Emits the SwapComplete event", async function () {
       await erc20Swapper.connect(swapper1).initiateSwap(defaultSwap);
 
@@ -616,13 +689,13 @@ describe("erc20Swapper", function () {
 });
 
 export function getDefaultSwap(
-  initiatorErc20Contract: string,
+  initiatorErcContract: string,
   acceptorErcContract: string,
   swapper1Address: string,
   swapper2Address: string,
 ): Erc20Swap {
   return {
-    initiatorErcContract: initiatorErc20Contract,
+    initiatorErcContract: initiatorErcContract,
     acceptorErcContract: acceptorErcContract,
     initiator: swapper1Address,
     initiatorTokenAmount: 500n,

@@ -59,6 +59,14 @@ contract ERC20Swapper is IERC20Swapper {
       revert TwoWayEthPortionsDisallowed();
     }
 
+    if (_swap.initiatorETHPortion == 0 && _swap.initiatorTokenAmount == 0) {
+      revert MissingInitiatorSwapValues();
+    }
+
+    if (_swap.acceptorETHPortion == 0 && _swap.acceptorTokenAmount == 0) {
+      revert MissingAcceptorSwapValues();
+    }
+
     unchecked {
       uint256 newSwapId = swapId++;
       swapHashes[newSwapId] = Utils.hashErc20Swap(_swap);
@@ -115,8 +123,13 @@ contract ERC20Swapper is IERC20Swapper {
 
     /// @dev There are tests that cover front-running balance moving or allowance changing, the ERC20 will fail transfer.
     /// @dev Because of the cast, the errors are bubbled up (InsufficientBalance/Allowance).
-    IERC20(_swap.initiatorErcContract).transferFrom(_swap.initiator, _swap.acceptor, _swap.initiatorTokenAmount);
-    IERC20(_swap.acceptorErcContract).transferFrom(_swap.acceptor, _swap.initiator, _swap.acceptorTokenAmount);
+    if (_swap.initiatorTokenAmount > 0) {
+      IERC20(_swap.initiatorErcContract).transferFrom(_swap.initiator, _swap.acceptor, _swap.initiatorTokenAmount);
+    }
+
+    if (_swap.acceptorTokenAmount > 0) {
+      IERC20(_swap.acceptorErcContract).transferFrom(_swap.acceptor, _swap.initiator, _swap.acceptorTokenAmount);
+    }
   }
 
   /**
