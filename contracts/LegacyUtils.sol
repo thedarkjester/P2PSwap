@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.26;
 
 import { IERC721Swapper } from "./IERC721Swapper.sol";
 import { IERC20Swapper } from "./IERC20Swapper.sol";

@@ -7,7 +7,15 @@ pragma solidity 0.8.26;
  * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-interface IERC20Swapper {
+interface ISwapTokens {
+  enum TokenType {
+    NONE,
+    ERC20,
+    ERC777, // erc20 really
+    ERC721,
+    ERC1155
+  }
+
   /**
    * @dev Emitted when a new swap is initiated.
    * @param swapId The unique swapId.
@@ -41,38 +49,44 @@ interface IERC20Swapper {
   event SwapComplete(uint256 indexed swapId, address indexed initiator, address indexed acceptor, Swap swap);
 
   /**
-   * @dev initiatorNftContract is the contract address for the initiator's NFT.
-   * @dev acceptorNftContract is the contract address for the acceptors's NFT (may be same as initiator's).
+   * @dev initiatorERCContract is the contract address for the initiator's NFT.
+   * @dev acceptorERCContract is the contract address for the acceptors's NFT (may be same as initiator's).
    * @dev initiator is the address for the account initiating the swap.
-   * @dev initiatorTokenAmount is the ERC amount for the acceptor's token.
+   * @dev initiatorTokenIdOrAmount is the NFT Id for the initiator's token.
    * @dev acceptor is the address for the account accepting the swap.
-   * @dev acceptorTokenAmount is the ERC amount for the acceptor's token.
+   * @dev acceptorTokenIdOrAmount is the NFT Id for the acceptor's token.
    * @dev initiatorETHPortion is the ETH sweetener offered by the intiator.
    * @dev acceptorETHPortion is the ETH sweetener to be provided by the acceptor.
+   * @dev initiatorTokenType The type of token used to determine swap mechanics.
+   * @dev acceptorTokenType The type of token used to determine swap mechanics.
    */
   struct Swap {
-    address initiatorErcContract;
-    address acceptorErcContract;
+    address initiatorERCContract;
+    address acceptorERCContract;
     address initiator;
-    uint256 initiatorTokenAmount;
+    uint256 initiatorTokenIdOrAmount;
     address acceptor;
-    uint256 acceptorTokenAmount;
+    uint256 acceptorTokenIdOrAmount;
     uint256 initiatorETHPortion;
     uint256 acceptorETHPortion;
+    TokenType initiatorTokenType;
+    TokenType acceptorTokenType;
   }
 
   /**
-   * @dev initiatorOwnsToken is the boolean indicating if the initiator owns the token.
-   * @dev acceptorOwnsToken is the boolean indicating if the acceptor owns the token.
-   * @dev initiatorApprovalsSet is the boolean indicating if the initiator has approved the swap contract for the NFT.
-   * @dev acceptorApprovalsSet is the boolean indicating if the accepor has approved the swap contract for the NFT.
+   * @dev initiatorNeedsToOwnToken is the boolean indicating if the initiator owns the token.
+   * @dev acceptorNeedsToOwnToken is the boolean indicating if the acceptor owns the token.
+   * @dev initiatorTokenRequiresApproval is the boolean indicating if the initiator has approved the swap contract for the NFT.
+   * @dev acceptorTokenRequiresApproval is the boolean indicating if the accepor has approved the swap contract for the NFT.
+   * @dev isReadyForSwapping a bool indicating if the swap is ready.
    * @dev all have to be true for the swap to work.
    */
   struct SwapStatus {
-    bool initiatorHasBalance;
-    bool acceptorHasBalance;
-    bool initiatorApprovalsSet;
-    bool acceptorApprovalsSet;
+    bool initiatorNeedsToOwnToken;
+    bool acceptorNeedsToOwnToken;
+    bool initiatorTokenRequiresApproval;
+    bool acceptorTokenRequiresApproval;
+    bool isReadyForSwapping;
   }
 
   /**
@@ -106,6 +120,16 @@ interface IERC20Swapper {
   error NotInitiator();
 
   /**
+   * @dev Thrown when the initiator is not providing a token or a value.
+   */
+  error InitiatorValueOrTokenMissing();
+
+  /**
+   * @dev Thrown when the acceptor is not providing a token or a value.
+   */
+  error AcceptorValueOrTokenMissing();
+
+  /**
    * @dev Thrown when ETH is not provided on completing the swap.
    * @param expectedETHPortion The expected ETH portion.
    */
@@ -129,26 +153,6 @@ interface IERC20Swapper {
    * @param actual The actual initator ETH portion (msg.value).
    */
   error InitiatorEthPortionNotMatched(uint256 expected, uint256 actual);
-
-  /**
-   * @dev Thrown when the initiator to the acceptor transfer fails.
-   */
-  error TransferToInitiatorFailed();
-
-  /**
-   * @dev Thrown when the initiator to the initiator transfer fails.
-   */
-  error TransferToAcceptorFailed();
-
-  /**
-   * @dev Thrown when the initiator swap has no value to swap.
-   */
-  error MissingInitiatorSwapValues();
-
-  /**
-   * @dev Thrown when the acceptor swap has no value to swap.
-   */
-  error MissingAcceptorSwapValues();
 
   /**
    * @notice Initiates a swap of two NFTs.

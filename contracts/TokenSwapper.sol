@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC20Swapper } from "./IERC20Swapper.sol";
+import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import { ISwapTokens } from "./ISwapTokens.sol";
 import { Utils } from "./Utils.sol";
 
 /**
@@ -11,8 +13,9 @@ import { Utils } from "./Utils.sol";
  * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-contract ERC20Swapper is IERC20Swapper {
+contract TokenSwapper is ISwapTokens {
   using Utils for *;
+
   address private constant ZERO_ADDRESS = address(0);
 
   // user account => balance
@@ -36,15 +39,26 @@ contract ERC20Swapper is IERC20Swapper {
    * @param _swap The full swap details.
    */
   function initiateSwap(Swap memory _swap) external payable {
-    if (_swap.initiatorErcContract == ZERO_ADDRESS) {
-      revert ZeroAddressDisallowed();
-    }
-    if (_swap.acceptorErcContract == ZERO_ADDRESS) {
-      revert ZeroAddressDisallowed();
+    // 1. initiator token address is empty meaning there must be a value
+    if (_swap.initiatorERCContract == ZERO_ADDRESS) {
+      if (_swap.initiatorETHPortion == 0) {
+        revert InitiatorValueOrTokenMissing();
+      }
+    } else {
+      if (_swap.initiatorTokenIdOrAmount == 0) {
+        revert InitiatorValueOrTokenMissing();
+      }
     }
 
-    if (_swap.acceptor == ZERO_ADDRESS) {
-      revert ZeroAddressDisallowed();
+    // 2. acceptor token address is empty, there must be an amount
+    if (_swap.acceptorERCContract == ZERO_ADDRESS) {
+      if (_swap.acceptorETHPortion == 0) {
+        revert AcceptorValueOrTokenMissing();
+      }
+    } else {
+      if (_swap.initiatorTokenIdOrAmount == 0) {
+        revert AcceptorValueOrTokenMissing();
+      }
     }
 
     if (msg.sender != _swap.initiator) {
@@ -59,18 +73,17 @@ contract ERC20Swapper is IERC20Swapper {
       revert TwoWayEthPortionsDisallowed();
     }
 
-    if (_swap.initiatorETHPortion == 0 && _swap.initiatorTokenAmount == 0) {
-      revert MissingInitiatorSwapValues();
+    if (msg.value == 0 && _swap.initiatorTokenIdOrAmount == 0) {
+      revert InitiatorValueOrTokenMissing();
     }
 
-    if (_swap.acceptorETHPortion == 0 && _swap.acceptorTokenAmount == 0) {
-      revert MissingAcceptorSwapValues();
+    if (_swap.initiatorETHPortion == 0 && _swap.acceptorTokenIdOrAmount == 0) {
+      revert AcceptorValueOrTokenMissing();
     }
 
     unchecked {
       uint256 newSwapId = swapId++;
-      swapHashes[newSwapId] = Utils.hashSwap(_swap);
-      (_swap);
+      swapHashes[newSwapId] = Utils.hashTokenSwap(_swap);
 
       // _swap emitted to pass in later when querying, completing or removing
       emit SwapInitiated(newSwapId, msg.sender, _swap.acceptor, _swap);
@@ -86,7 +99,7 @@ contract ERC20Swapper is IERC20Swapper {
    * @param _swap The swap data to use and verify.
    */
   function completeSwap(uint256 _swapId, Swap memory _swap) external payable {
-    if (swapHashes[_swapId] != Utils.hashSwap(_swap)) {
+    if (swapHashes[_swapId] != Utils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -121,14 +134,22 @@ contract ERC20Swapper is IERC20Swapper {
 
     emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
 
-    /// @dev There are tests that cover front-running balance moving or allowance changing, the ERC20 will fail transfer.
-    /// @dev Because of the cast, the errors are bubbled up (InsufficientBalance/Allowance).
-    if (_swap.initiatorTokenAmount > 0) {
-      IERC20(_swap.initiatorErcContract).transferFrom(_swap.initiator, _swap.acceptor, _swap.initiatorTokenAmount);
+    if (_swap.initiatorTokenType != TokenType.NONE) {
+      (getTokenTransfer(_swap.initiatorTokenType))(
+        _swap.initiatorERCContract,
+        _swap.initiatorTokenIdOrAmount,
+        _swap.initiator,
+        _swap.acceptor
+      );
     }
 
-    if (_swap.acceptorTokenAmount > 0) {
-      IERC20(_swap.acceptorErcContract).transferFrom(_swap.acceptor, _swap.initiator, _swap.acceptorTokenAmount);
+    if (_swap.acceptorTokenType != TokenType.NONE) {
+      (getTokenTransfer(_swap.acceptorTokenType))(
+        _swap.acceptorERCContract,
+        _swap.acceptorTokenIdOrAmount,
+        _swap.acceptor,
+        _swap.initiator
+      );
     }
   }
 
@@ -139,7 +160,7 @@ contract ERC20Swapper is IERC20Swapper {
    * @param _swapId The ID of the swap.
    */
   function removeSwap(uint256 _swapId, Swap memory _swap) external {
-    if (swapHashes[_swapId] != Utils.hashSwap(_swap)) {
+    if (swapHashes[_swapId] != Utils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -174,7 +195,7 @@ contract ERC20Swapper is IERC20Swapper {
 
     emit BalanceWithDrawn(msg.sender, callerBalance);
 
-    bytes4 errorSelector = IERC20Swapper.ETHSendingFailed.selector;
+    bytes4 errorSelector = ISwapTokens.ETHSendingFailed.selector;
     assembly {
       let success := call(gas(), caller(), callerBalance, 0, 0, 0, 0)
       if iszero(success) {
@@ -192,22 +213,128 @@ contract ERC20Swapper is IERC20Swapper {
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
   function getSwapStatus(uint256 _swapId, Swap memory _swap) external view returns (SwapStatus memory swapStatus) {
-    if (swapHashes[_swapId] != Utils.hashSwap(_swap)) {
+    if (swapHashes[_swapId] != Utils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    IERC20 initiatorErcContract = IERC20(_swap.initiatorErcContract);
+    if (_swap.initiatorTokenType != TokenType.NONE) {
+      (bool initiatorNeedsToOwnToken, bool initiatorTokenRequiresApproval) = (
+        getTokenSwapStatus(_swap.initiatorTokenType)
+      )(_swap.initiatorERCContract, _swap.initiatorTokenIdOrAmount, _swap.initiator);
+      swapStatus.initiatorNeedsToOwnToken = initiatorNeedsToOwnToken;
+      swapStatus.initiatorTokenRequiresApproval = initiatorTokenRequiresApproval;
+    }
+    if (_swap.acceptorTokenType != TokenType.NONE) {
+      (bool acceptorNeedsToOwnToken, bool acceptorTokenRequiresApproval) = (
+        getTokenSwapStatus(_swap.acceptorTokenType)
+      )(_swap.acceptorERCContract, _swap.acceptorTokenIdOrAmount, _swap.acceptor);
 
-    swapStatus.initiatorHasBalance = initiatorErcContract.balanceOf(_swap.initiator) >= _swap.initiatorTokenAmount;
-    swapStatus.initiatorApprovalsSet =
-      initiatorErcContract.allowance(_swap.initiator, address(this)) >= _swap.initiatorTokenAmount;
+      swapStatus.acceptorNeedsToOwnToken = acceptorNeedsToOwnToken;
+      swapStatus.acceptorTokenRequiresApproval = acceptorTokenRequiresApproval;
+    }
 
-    IERC20 acceptorErcContract = IERC20(_swap.acceptorErcContract);
-    swapStatus.acceptorHasBalance = acceptorErcContract.balanceOf(_swap.acceptor) >= _swap.acceptorTokenAmount;
-    swapStatus.acceptorApprovalsSet =
-      acceptorErcContract.allowance(_swap.acceptor, address(this)) >= _swap.acceptorTokenAmount;
+    swapStatus.isReadyForSwapping =
+      !(swapStatus.initiatorNeedsToOwnToken) &&
+      !(swapStatus.initiatorTokenRequiresApproval) &&
+      !(swapStatus.acceptorNeedsToOwnToken) &&
+      !(swapStatus.acceptorTokenRequiresApproval);
+  }
+
+  //todo NatSpec
+  function getTokenSwapStatus(
+    TokenType _tokenType
+  ) internal pure returns (function(address, uint256, address) view returns (bool, bool)) {
+    if (_tokenType == TokenType.ERC20 || _tokenType == TokenType.ERC777) {
+      return erc20Status;
+    }
+
+    if (_tokenType == TokenType.ERC721) {
+      return erc721Status;
+    }
+
+    if (_tokenType == TokenType.ERC1155) {
+      return erc1155Status;
+    }
+  }
+
+  function getTokenTransfer(TokenType _tokenType) internal pure returns (function(address, uint256, address, address)) {
+    if (_tokenType == TokenType.ERC20 || _tokenType == TokenType.ERC777) {
+      return erc20Transferer;
+    }
+
+    if (_tokenType == TokenType.ERC721) {
+      return erc721Transferer;
+    }
+
+    if (_tokenType == TokenType.ERC1155) {
+      return erc1155Transferer;
+    }
+  }
+
+  function erc20Transferer(
+    address _tokenAddress,
+    uint256 _tokenIdOrAmount,
+    address _tokenOwner,
+    address _recipient
+  ) internal {
+    IERC20(_tokenAddress).transferFrom(_tokenOwner, _recipient, _tokenIdOrAmount);
+  }
+
+  function erc721Transferer(
+    address _tokenAddress,
+    uint256 _tokenIdOrAmount,
+    address _tokenOwner,
+    address _recipient
+  ) internal {
+    IERC721(_tokenAddress).safeTransferFrom(_tokenOwner, _recipient, _tokenIdOrAmount);
+  }
+
+  function erc1155Transferer(
+    address _tokenAddress,
+    uint256 _tokenIdOrAmount,
+    address _tokenOwner,
+    address _recipient
+  ) internal {
+    IERC1155(_tokenAddress).safeTransferFrom(_tokenOwner, _recipient, _tokenIdOrAmount, 1, "0x");
+  }
+
+  //todo NatSpec
+  function erc20Status(
+    address _tokenAddress,
+    uint256 _tokenIdOrAmount,
+    address _tokenOwner
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
+    IERC20 erc20Token = IERC20(_tokenAddress);
+
+    needsToOwnToken = erc20Token.balanceOf(_tokenOwner) < _tokenIdOrAmount;
+    tokenRequiresApproval = erc20Token.allowance(_tokenOwner, address(this)) >= _tokenIdOrAmount;
+  }
+
+  //todo NatSpec
+  function erc721Status(
+    address _tokenAddress,
+    uint256 _tokenIdOrAmount,
+    address _tokenOwner
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
+    IERC721 erc721Token = IERC721(_tokenAddress);
+
+    needsToOwnToken = erc721Token.ownerOf(_tokenIdOrAmount) != _tokenOwner;
+    tokenRequiresApproval = erc721Token.getApproved(_tokenIdOrAmount) != address(this);
+  }
+
+  //todo NatSpec
+  function erc1155Status(
+    address _tokenAddress,
+    uint256 _tokenIdOrAmount,
+    address _tokenOwner
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
+    IERC1155 erc1155Token = IERC1155(_tokenAddress);
+
+    needsToOwnToken = erc1155Token.balanceOf(_tokenOwner, _tokenIdOrAmount) == 0;
+    tokenRequiresApproval = !erc1155Token.isApprovedForAll(_tokenOwner, address(this));
   }
 }
+
 /*   
                                                               
 T H E D A R K J E S T E R . E T H

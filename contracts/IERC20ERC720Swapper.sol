@@ -7,7 +7,7 @@ pragma solidity 0.8.26;
  * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-interface IERC20Swapper {
+interface IERC20ERC720Swapper {
   /**
    * @dev Emitted when a new swap is initiated.
    * @param swapId The unique swapId.
@@ -44,9 +44,11 @@ interface IERC20Swapper {
    * @dev initiatorNftContract is the contract address for the initiator's NFT.
    * @dev acceptorNftContract is the contract address for the acceptors's NFT (may be same as initiator's).
    * @dev initiator is the address for the account initiating the swap.
-   * @dev initiatorTokenAmount is the ERC amount for the acceptor's token.
+   * @dev initiatorTokenAmount is the ERC amount for the acceptor's token (optional).
+   * @dev initiatorTokenId is the ERC TokenId for the acceptor's token (optional).
    * @dev acceptor is the address for the account accepting the swap.
-   * @dev acceptorTokenAmount is the ERC amount for the acceptor's token.
+   * @dev acceptorTokenAmount is the ERC amount for the acceptor's token (optional).
+   * @dev acceptorTokenId is the ERC TokenId for the acceptor's token (optional).
    * @dev initiatorETHPortion is the ETH sweetener offered by the intiator.
    * @dev acceptorETHPortion is the ETH sweetener to be provided by the acceptor.
    */
@@ -55,8 +57,10 @@ interface IERC20Swapper {
     address acceptorErcContract;
     address initiator;
     uint256 initiatorTokenAmount;
+    uint256 initiatorTokenId;
     address acceptor;
     uint256 acceptorTokenAmount;
+    uint256 acceptorTokenId;
     uint256 initiatorETHPortion;
     uint256 acceptorETHPortion;
   }
