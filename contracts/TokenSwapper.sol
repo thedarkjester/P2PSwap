@@ -307,7 +307,7 @@ contract TokenSwapper is ISwapTokens {
     IERC20 erc20Token = IERC20(_tokenAddress);
 
     needsToOwnToken = erc20Token.balanceOf(_tokenOwner) < _tokenIdOrAmount;
-    tokenRequiresApproval = erc20Token.allowance(_tokenOwner, address(this)) >= _tokenIdOrAmount;
+    tokenRequiresApproval = erc20Token.allowance(_tokenOwner, address(this)) < _tokenIdOrAmount;
   }
 
   //todo NatSpec
