@@ -120,14 +120,14 @@ interface ISwapTokens {
   error NotInitiator();
 
   /**
-   * @dev Thrown when the initiator is not providing a token or a value.
+   * @dev Thrown when the initiator is not providing a token or a value for either initiator or acceptor.
    */
-  error InitiatorValueOrTokenMissing();
+  error ValueOrTokenMissing();
 
   /**
-   * @dev Thrown when the acceptor is not providing a token or a value.
+   * @dev Thrown when the tokenAddress is zero address but the token or amount is set.
    */
-  error AcceptorValueOrTokenMissing();
+  error TokenIdSetForZeroAddress();
 
   /**
    * @dev Thrown when ETH is not provided on completing the swap.
@@ -139,6 +139,11 @@ interface ISwapTokens {
    * @dev Thrown when the destination for the ETH reverts acceptance.
    */
   error ETHSendingFailed();
+
+  /**
+   * @dev Thrown when the token transfer failed.
+   */
+  error TokenTransferFailed(address tokenAddress, uint256);
 
   /**
    * @dev Thrown when the initiator in the config does not match the msg.sender.
@@ -186,6 +191,12 @@ interface ISwapTokens {
    * @dev The ETH balance is sent to the msg.sender.
    */
   function withdraw() external;
+
+  /**
+   * @notice Retrieves the Swap in transient storage.
+   * @return swap The swap stored in transient storage.
+   */
+  function getTransientSwap() external view returns (Swap memory swap);
 
   /**
    * @notice Retrieves the NFT status.

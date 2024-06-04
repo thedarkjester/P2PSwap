@@ -53,4 +53,27 @@ library Utils {
       swapHash := keccak256(mPtr, 0x100)
     }
   }
+
+  function tstoreAddress(bytes32 _key, ISwapTokens.Swap memory _swap) internal {
+    assembly {
+      tstore(_key, _swap)
+    }
+  }
+
+  function storeTransientSwap(bytes32 _key, ISwapTokens.Swap memory _swap) internal {
+    assembly {
+      tstore(_key, _swap)
+    }
+  }
+
+  function wipeTransientSwap(bytes32 _key) internal {
+    ISwapTokens.Swap memory swap;
+    storeTransientSwap(_key, swap);
+  }
+
+  function loadTransientSwap(bytes32 _key) internal view returns (ISwapTokens.Swap memory swap) {
+    assembly {
+      swap := tload(_key)
+    }
+  }
 }

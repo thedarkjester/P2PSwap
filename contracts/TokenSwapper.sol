@@ -14,6 +14,8 @@ import { Utils } from "./Utils.sol";
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
 contract TokenSwapper is ISwapTokens {
+  bytes32 private constant SWAP_TRANSIENT_KEY = bytes32(uint256(keccak256("eip1967.swap.transient.key")) - 1);
+
   using Utils for *;
 
   address private constant ZERO_ADDRESS = address(0);
@@ -40,25 +42,37 @@ contract TokenSwapper is ISwapTokens {
    */
   function initiateSwap(Swap memory _swap) external payable {
     // 1. initiator token address is empty meaning there must be a value
-    if (_swap.initiatorERCContract == ZERO_ADDRESS) {
-      if (_swap.initiatorETHPortion == 0) {
-        revert InitiatorValueOrTokenMissing();
-      }
-    } else {
-      if (_swap.initiatorTokenIdOrAmount == 0) {
-        revert InitiatorValueOrTokenMissing();
+
+    validateInitiatorSwapParameters(
+      _swap.initiatorTokenType,
+      _swap.initiatorERCContract,
+      _swap.initiatorETHPortion,
+      _swap.initiatorTokenIdOrAmount
+    );
+
+    if (_swap.initiatorTokenType == TokenType.NONE) {
+      _swap.initiatorTokenIdOrAmount = 0;
+      _swap.initiatorERCContract = ZERO_ADDRESS;
+
+      if (msg.value == 0) {
+        revert ValueOrTokenMissing();
       }
     }
 
-    // 2. acceptor token address is empty, there must be an amount
-    if (_swap.acceptorERCContract == ZERO_ADDRESS) {
-      if (_swap.acceptorETHPortion == 0) {
-        revert AcceptorValueOrTokenMissing();
-      }
-    } else {
-      if (_swap.initiatorTokenIdOrAmount == 0) {
-        revert AcceptorValueOrTokenMissing();
-      }
+    validateInitiatorSwapParameters(
+      _swap.acceptorTokenType,
+      _swap.acceptorERCContract,
+      _swap.acceptorETHPortion,
+      _swap.acceptorTokenIdOrAmount
+    );
+
+    if (_swap.acceptorTokenType == TokenType.NONE) {
+      _swap.acceptorTokenIdOrAmount = 0;
+      _swap.acceptorERCContract = ZERO_ADDRESS;
+    }
+
+    if (_swap.acceptor == ZERO_ADDRESS) {
+      revert ZeroAddressDisallowed();
     }
 
     if (msg.sender != _swap.initiator) {
@@ -73,14 +87,6 @@ contract TokenSwapper is ISwapTokens {
       revert TwoWayEthPortionsDisallowed();
     }
 
-    if (msg.value == 0 && _swap.initiatorTokenIdOrAmount == 0) {
-      revert InitiatorValueOrTokenMissing();
-    }
-
-    if (_swap.initiatorETHPortion == 0 && _swap.acceptorTokenIdOrAmount == 0) {
-      revert AcceptorValueOrTokenMissing();
-    }
-
     unchecked {
       uint256 newSwapId = swapId++;
       swapHashes[newSwapId] = Utils.hashTokenSwap(_swap);
@@ -90,6 +96,31 @@ contract TokenSwapper is ISwapTokens {
     }
   }
 
+  function validateInitiatorSwapParameters(
+    TokenType _tokenType,
+    address _ercContract,
+    uint256 _ethPortion,
+    uint256 _tokenIdOrAmount
+  ) internal pure {
+    if (_tokenType != TokenType.NONE) {
+      if (_ercContract == ZERO_ADDRESS) {
+        if (_ethPortion == 0) {
+          revert ValueOrTokenMissing();
+        }
+        if (_tokenIdOrAmount != 0) {
+          revert TokenIdSetForZeroAddress();
+        }
+      } else {
+        if (_tokenIdOrAmount == 0) {
+          revert ValueOrTokenMissing();
+        }
+      }
+    } else {
+      if (_ethPortion == 0) {
+        revert ValueOrTokenMissing();
+      }
+    }
+  }
   /**
    * @notice Completes the swap.
    * @dev If ETH is sent, it is used as the acceptor ETH portion.
@@ -134,6 +165,8 @@ contract TokenSwapper is ISwapTokens {
 
     emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
 
+    Utils.storeTransientSwap(SWAP_TRANSIENT_KEY, _swap);
+
     if (_swap.initiatorTokenType != TokenType.NONE) {
       (getTokenTransfer(_swap.initiatorTokenType))(
         _swap.initiatorERCContract,
@@ -151,6 +184,8 @@ contract TokenSwapper is ISwapTokens {
         _swap.initiator
       );
     }
+
+    Utils.wipeTransientSwap(SWAP_TRANSIENT_KEY);
   }
 
   /**
@@ -240,7 +275,18 @@ contract TokenSwapper is ISwapTokens {
       !(swapStatus.acceptorTokenRequiresApproval);
   }
 
-  //todo NatSpec
+  /**
+   * @notice Retrieves the Swap in transient storage.
+   * @return swap The swap stored in transient storage.
+   */
+  function getTransientSwap() external view returns (Swap memory swap) {
+    swap = Utils.loadTransientSwap(SWAP_TRANSIENT_KEY);
+  }
+
+  /**
+   * @notice Retrieves the function to determine a swap's status based on token type.
+   * @return The swap function.
+   */
   function getTokenSwapStatus(
     TokenType _tokenType
   ) internal pure returns (function(address, uint256, address) view returns (bool, bool)) {
@@ -257,6 +303,9 @@ contract TokenSwapper is ISwapTokens {
     }
   }
 
+  /**
+   * @notice Retrieves the function to transfer a swap's token based on token type.
+   */
   function getTokenTransfer(TokenType _tokenType) internal pure returns (function(address, uint256, address, address)) {
     if (_tokenType == TokenType.ERC20 || _tokenType == TokenType.ERC777) {
       return erc20Transferer;
@@ -271,13 +320,18 @@ contract TokenSwapper is ISwapTokens {
     }
   }
 
+  /**
+   * @notice Retrieves the function to transfer a swap's token based on token type.
+   */
   function erc20Transferer(
     address _tokenAddress,
     uint256 _tokenIdOrAmount,
     address _tokenOwner,
     address _recipient
   ) internal {
-    IERC20(_tokenAddress).transferFrom(_tokenOwner, _recipient, _tokenIdOrAmount);
+    if (!IERC20(_tokenAddress).transferFrom(_tokenOwner, _recipient, _tokenIdOrAmount)) {
+      revert TokenTransferFailed(_tokenAddress, _tokenIdOrAmount);
+    }
   }
 
   function erc721Transferer(
