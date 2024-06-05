@@ -168,7 +168,7 @@ contract TokenSwapper is ISwapTokens {
     Utils.storeTransientSwap(SWAP_TRANSIENT_KEY, _swap);
 
     if (_swap.initiatorTokenType != TokenType.NONE) {
-      (getTokenTransfer(_swap.initiatorTokenType))(
+      getTokenTransfer(_swap.initiatorTokenType)(
         _swap.initiatorERCContract,
         _swap.initiatorTokenIdOrAmount,
         _swap.initiator,
@@ -177,7 +177,7 @@ contract TokenSwapper is ISwapTokens {
     }
 
     if (_swap.acceptorTokenType != TokenType.NONE) {
-      (getTokenTransfer(_swap.acceptorTokenType))(
+      getTokenTransfer(_swap.acceptorTokenType)(
         _swap.acceptorERCContract,
         _swap.acceptorTokenIdOrAmount,
         _swap.acceptor,
