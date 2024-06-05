@@ -184,6 +184,22 @@ describe.only("tokenSwapper", function () {
       ).to.be.revertedWithCustomError(tokenSwapper, "TwoWayEthPortionsDisallowed");
     });
 
+    it("Fails with no ETH and TokenType is none", async function () {
+      defaultSwap.initiatorTokenType = 0n;
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "ValueOrTokenMissing",
+      );
+    });
+
+    it("Fails with no tokenId or amount", async function () {
+      defaultSwap.initiatorTokenIdOrAmount = 0n;
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "ValueOrTokenMissing",
+      );
+    });
+
     it("Initiates with empty initiator contract address and ETH value set", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;

@@ -53,10 +53,6 @@ contract TokenSwapper is ISwapTokens {
     if (_swap.initiatorTokenType == TokenType.NONE) {
       _swap.initiatorTokenIdOrAmount = 0;
       _swap.initiatorERCContract = ZERO_ADDRESS;
-
-      if (msg.value == 0) {
-        revert ValueOrTokenMissing();
-      }
     }
 
     validateInitiatorSwapParameters(
