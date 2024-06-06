@@ -13,4 +13,8 @@ contract MyToken is ERC721, Ownable {
     uint256 tokenId = _nextTokenId++;
     _safeMint(to, tokenId);
   }
+
+  function safeTransfer(address from, address to, uint256 tokenId) external {
+    _safeTransfer(from, to, tokenId, "");
+  }
 }

@@ -249,16 +249,18 @@ contract TokenSwapper is ISwapTokens {
     }
 
     if (_swap.initiatorTokenType != TokenType.NONE) {
-      (bool initiatorNeedsToOwnToken, bool initiatorTokenRequiresApproval) = (
-        getTokenSwapStatus(_swap.initiatorTokenType)
+      (bool initiatorNeedsToOwnToken, bool initiatorTokenRequiresApproval) = getTokenSwapStatus(
+        _swap.initiatorTokenType
       )(_swap.initiatorERCContract, _swap.initiatorTokenIdOrAmount, _swap.initiator);
       swapStatus.initiatorNeedsToOwnToken = initiatorNeedsToOwnToken;
       swapStatus.initiatorTokenRequiresApproval = initiatorTokenRequiresApproval;
     }
     if (_swap.acceptorTokenType != TokenType.NONE) {
-      (bool acceptorNeedsToOwnToken, bool acceptorTokenRequiresApproval) = (
-        getTokenSwapStatus(_swap.acceptorTokenType)
-      )(_swap.acceptorERCContract, _swap.acceptorTokenIdOrAmount, _swap.acceptor);
+      (bool acceptorNeedsToOwnToken, bool acceptorTokenRequiresApproval) = getTokenSwapStatus(_swap.acceptorTokenType)(
+        _swap.acceptorERCContract,
+        _swap.acceptorTokenIdOrAmount,
+        _swap.acceptor
+      );
 
       swapStatus.acceptorNeedsToOwnToken = acceptorNeedsToOwnToken;
       swapStatus.acceptorTokenRequiresApproval = acceptorTokenRequiresApproval;

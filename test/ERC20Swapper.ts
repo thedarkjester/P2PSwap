@@ -53,9 +53,6 @@ describe("erc20Swapper", function () {
     reentryTesterAddress = await reentryTester.getAddress();
   }
 
-  // swapper 1 has 2 tokens to start (0,1)
-  // swapper 2 has 2 tokens to start (2,3)
-  // reentry has 2 tokens to start (4,5)
   async function mintTokensToSwap() {
     await erc20A.connect(owner).safeMint(swapper1Address, 1000);
     await erc20B.connect(owner).safeMint(swapper2Address, 1000);
