@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { ISwapTokens, ReentryTester, TokenSwapper, MyToken } from "../typechain-types";
 
-describe.only("tokenSwapper", function () {
+describe("tokenSwapper", function () {
   const GENERIC_SWAP_ETH = ethers.parseEther("1");
 
   let tokenSwapper: TokenSwapper;
@@ -104,7 +104,8 @@ describe.only("tokenSwapper", function () {
 
     it("Fails with empty acceptor contract address and amount", async function () {
       defaultSwap.acceptorERCContract = ethers.ZeroAddress;
-      await expect(tokenSwapper.initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ValueOrTokenMissing",
       );
@@ -122,7 +123,7 @@ describe.only("tokenSwapper", function () {
     it("Fails with no value and no token data", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = 0;
-      defaultSwap.initiatorTokenIdOrAmount = 0;
+      defaultSwap.initiatorTokenId = 0;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ValueOrTokenMissing",
@@ -176,14 +177,14 @@ describe.only("tokenSwapper", function () {
 
     it("Fails with no ETH and TokenType is none", async function () {
       defaultSwap.initiatorTokenType = 0n;
-      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+      await expect(tokenSwapper.initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ValueOrTokenMissing",
       );
     });
 
     it("Fails with no tokenId or amount", async function () {
-      defaultSwap.initiatorTokenIdOrAmount = 0n;
+      defaultSwap.initiatorTokenId = 0n;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ValueOrTokenMissing",
@@ -193,7 +194,7 @@ describe.only("tokenSwapper", function () {
     it("Initiates with empty initiator contract address and ETH value set", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
-      defaultSwap.initiatorTokenIdOrAmount = 0;
+      defaultSwap.initiatorTokenId = 0;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
         value: GENERIC_SWAP_ETH,
       });
@@ -206,7 +207,7 @@ describe.only("tokenSwapper", function () {
     it("Initiates with empty acceptor contract address and ETH value set", async function () {
       defaultSwap.acceptorERCContract = ethers.ZeroAddress;
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
-      defaultSwap.acceptorTokenIdOrAmount = 0;
+      defaultSwap.acceptorTokenId = 0;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
       const expectedHash = keccakSwap(defaultSwap);
@@ -303,8 +304,6 @@ describe.only("tokenSwapper", function () {
 
     it("Returns all true except readiness when no balance", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
-
-      console.log(await myToken.ownerOf(1));
       await myToken.connect(swapper1).safeTransfer(swapper1Address, swapper2Address, 1);
       await myToken.connect(swapper2).safeTransfer(swapper2Address, swapper1Address, 2);
 
@@ -477,7 +476,7 @@ describe.only("tokenSwapper", function () {
 
     it("Increases the initiator balance if ETH Portion sent and no initiator tokens sent", async function () {
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
-      defaultSwap.initiatorTokenIdOrAmount = 0n;
+      defaultSwap.initiatorTokenId = 0n;
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorTokenType = 0n;
 
@@ -504,7 +503,7 @@ describe.only("tokenSwapper", function () {
 
     it("Increases the acceptor balance if ETH Portion sent and no acceptor tokens sent", async function () {
       defaultSwap.initiatorETHPortion = 0n;
-      defaultSwap.acceptorTokenIdOrAmount = 0n;
+      defaultSwap.acceptorTokenId = 0n;
       defaultSwap.acceptorERCContract = ethers.ZeroAddress;
       defaultSwap.acceptorTokenType = 0;
 
@@ -716,9 +715,11 @@ export function getDefaultSwap(
     initiatorERCContract: initiatorERCContract,
     acceptorERCContract: acceptorERCContract,
     initiator: swapper1Address,
-    initiatorTokenIdOrAmount: 1n,
+    initiatorTokenId: 1n,
+    initiatorTokenQuantity:0n,
     acceptor: swapper2Address,
-    acceptorTokenIdOrAmount: 2n,
+    acceptorTokenId: 2n,
+    acceptorTokenQuantity:0n,
     initiatorETHPortion: 0n,
     acceptorETHPortion: 0n,
     initiatorTokenType: 3n,
@@ -730,9 +731,11 @@ export type ErcSwap = {
   initiatorERCContract: string;
   acceptorERCContract: string;
   initiator: string;
-  initiatorTokenIdOrAmount: bigint;
+  initiatorTokenId: bigint;
+  initiatorTokenQuantity: bigint;
   acceptor: string;
-  acceptorTokenIdOrAmount: bigint;
+  acceptorTokenId: bigint;
+  acceptorTokenQuantity:bigint;
   initiatorETHPortion: bigint;
   acceptorETHPortion: bigint;
   initiatorTokenType: bigint;
@@ -752,14 +755,16 @@ export const encodeData = (paramTypes: string[], paramValues: unknown[], encodeP
 
 export function keccakSwap(swap: ISwapTokens.SwapStruct) {
   return abiEncodeAndKeccak256(
-    ["address", "address", "address", "uint256", "address", "uint256", "uint256", "uint256", "uint256", "uint256"],
+    ["address", "address", "address", "uint256","uint256", "address", "uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
     [
       swap.initiatorERCContract,
       swap.acceptorERCContract,
       swap.initiator,
-      swap.initiatorTokenIdOrAmount,
+      swap.initiatorTokenId,
+      swap.initiatorTokenQuantity,
       swap.acceptor,
-      swap.acceptorTokenIdOrAmount,
+      swap.acceptorTokenId,
+      swap.acceptorTokenQuantity,
       swap.initiatorETHPortion,
       swap.acceptorETHPortion,
       swap.initiatorTokenType,

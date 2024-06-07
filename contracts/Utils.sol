@@ -29,14 +29,14 @@ library Utils {
   /**
    * @notice Gas efficient swap hashing using inline assembly.
    * @dev There are 8 items in the struct, each using 32 bytes in calldata when used,
-   * so to hash it we use 0x140 (320), or 109*32 (320) bytes.
+   * so to hash it we use 0x180 (320), or 12*32 (360) bytes.
    * @param _swap The full Swap struct.
    */
   function hashTokenSwap(ISwapTokens.Swap memory _swap) internal pure returns (bytes32 swapHash) {
     assembly {
       let mPtr := mload(0x40)
-      mcopy(mPtr, _swap, 0x140)
-      swapHash := keccak256(mPtr, 0x140)
+      mcopy(mPtr, _swap, 0x180)
+      swapHash := keccak256(mPtr, 0x180)
     }
   }
 

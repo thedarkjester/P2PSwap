@@ -52,9 +52,9 @@ interface ISwapTokens {
    * @dev initiatorERCContract is the contract address for the initiator's NFT.
    * @dev acceptorERCContract is the contract address for the acceptors's NFT (may be same as initiator's).
    * @dev initiator is the address for the account initiating the swap.
-   * @dev initiatorTokenIdOrAmount is the NFT Id for the initiator's token.
+   * @dev initiatorTokenId is the NFT Id for the initiator's token.
    * @dev acceptor is the address for the account accepting the swap.
-   * @dev acceptorTokenIdOrAmount is the NFT Id for the acceptor's token.
+   * @dev acceptorTokenId is the NFT Id for the acceptor's token.
    * @dev initiatorETHPortion is the ETH sweetener offered by the intiator.
    * @dev acceptorETHPortion is the ETH sweetener to be provided by the acceptor.
    * @dev initiatorTokenType The type of token used to determine swap mechanics.
@@ -64,9 +64,11 @@ interface ISwapTokens {
     address initiatorERCContract;
     address acceptorERCContract;
     address initiator;
-    uint256 initiatorTokenIdOrAmount;
+    uint256 initiatorTokenId;
+    uint256 initiatorTokenQuantity;
     address acceptor;
-    uint256 acceptorTokenIdOrAmount;
+    uint256 acceptorTokenId;
+    uint256 acceptorTokenQuantity;
     uint256 initiatorETHPortion;
     uint256 acceptorETHPortion;
     TokenType initiatorTokenType;
@@ -128,6 +130,11 @@ interface ISwapTokens {
    * @dev Thrown when the tokenAddress is zero address but the token or amount is set.
    */
   error TokenIdSetForZeroAddress();
+
+  /**
+   * @dev Thrown when the tokenAddress is zero address but the quantity is set.
+   */
+  error TokenQuantitySetForZeroAddress();
 
   /**
    * @dev Thrown when ETH is not provided on completing the swap.

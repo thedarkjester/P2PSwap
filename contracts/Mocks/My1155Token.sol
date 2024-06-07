@@ -14,4 +14,8 @@ contract My1155Token is ERC1155, Ownable {
   function safeTransferFrom(address from, address to, uint256 tokenId) external {
     safeTransferFrom(from, to, tokenId, 1, "");
   }
+
+  fallback() payable external {
+
+  }
 }
