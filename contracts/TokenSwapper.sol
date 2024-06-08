@@ -14,7 +14,8 @@ import { Utils } from "./Utils.sol";
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
 contract TokenSwapper is ISwapTokens {
-  bytes32 private constant SWAP_TRANSIENT_KEY = bytes32(uint256(keccak256("eip1967.swap.transient.key")) - 1);
+  bytes32 private constant SAME_CONTRACT_SWAP_TRANSIENT_KEY =
+    bytes32(uint256(keccak256("eip1967.same.contract.swap.transient.key")) - 1);
 
   using Utils for *;
 
@@ -110,55 +111,33 @@ contract TokenSwapper is ISwapTokens {
     return validateNoTokenTypeSwapParameters;
   }
 
-  function validateERC20SwapParameters(
-    address _ercContract,
-    uint256 _ethPortion,
-    uint256,
-    uint256 _tokenQuantity
-  ) internal pure {
+  function validateERC20SwapParameters(address _ercContract, uint256, uint256, uint256 _tokenQuantity) internal pure {
     // validate address exists
-    // validate quantity > 0
-
     if (_ercContract == ZERO_ADDRESS) {
-      if (_ethPortion == 0) {
-        revert ValueOrTokenMissing();
-      }
-      if (_tokenQuantity != 0) {
-        revert TokenQuantitySetForZeroAddress();
-      }
-    } else {
-      if (_tokenQuantity == 0) {
-        revert ValueOrTokenMissing();
-      }
+      revert ZeroAddressSetForValidTokenType();
+    }
+
+    // validate quantity > 0
+    if (_tokenQuantity == 0) {
+      revert TokenQuantityMissing();
     }
   }
 
-  function validateERC721SwapParameters(
-    address _ercContract,
-    uint256 _ethPortion,
-    uint256 _tokenId,
-    uint256
-  ) internal pure {
+  function validateERC721SwapParameters(address _ercContract, uint256, uint256 _tokenId, uint256) internal pure {
     // validate address exists
-    // validate tokenId > 0
-
     if (_ercContract == ZERO_ADDRESS) {
-      if (_ethPortion == 0) {
-        revert ValueOrTokenMissing();
-      }
-      if (_tokenId != 0) {
-        revert TokenIdSetForZeroAddress();
-      }
-    } else {
-      if (_tokenId == 0) {
-        revert ValueOrTokenMissing();
-      }
+      revert ZeroAddressSetForValidTokenType();
+    }
+
+    // validate _tokenId > 0
+    if (_tokenId == 0) {
+      revert TokenIdMissing();
     }
   }
 
   function validateERC1155SwapParameters(
     address _ercContract,
-    uint256 _ethPortion,
+    uint256,
     uint256 _tokenId,
     uint256 _tokenQuantity
   ) internal pure {
@@ -166,17 +145,19 @@ contract TokenSwapper is ISwapTokens {
     // validate tokenId > 0
     // validate _tokenQuantity > 0
 
+    // validate address exists
     if (_ercContract == ZERO_ADDRESS) {
-      if (_ethPortion == 0) {
-        revert ValueOrTokenMissing();
-      }
-      if (_tokenId != 0) {
-        revert TokenIdSetForZeroAddress();
-      }
-    } else {
-      if (_tokenId == 0 || _tokenQuantity == 0) {
-        revert ValueOrTokenMissing();
-      }
+      revert ZeroAddressSetForValidTokenType();
+    }
+
+    // validate _tokenId > 0
+    if (_tokenId == 0) {
+      revert TokenIdMissing();
+    }
+
+    // validate quantity > 0
+    if (_tokenQuantity == 0) {
+      revert TokenQuantityMissing();
     }
   }
 
@@ -230,7 +211,7 @@ contract TokenSwapper is ISwapTokens {
 
     emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
 
-    Utils.storeTransientSwap(SWAP_TRANSIENT_KEY, _swap);
+    Utils.storeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY, _swap.acceptorERCContract == _swap.initiatorERCContract);
 
     getTokenTransfer(_swap.initiatorTokenType)(
       _swap.initiatorERCContract,
@@ -248,7 +229,7 @@ contract TokenSwapper is ISwapTokens {
       _swap.initiator
     );
 
-    Utils.wipeTransientSwap(SWAP_TRANSIENT_KEY);
+    Utils.wipeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
   }
 
   /**
@@ -342,12 +323,8 @@ contract TokenSwapper is ISwapTokens {
       !(swapStatus.acceptorTokenRequiresApproval);
   }
 
-  /**
-   * @notice Retrieves the Swap in transient storage.
-   * @return swap The swap stored in transient storage.
-   */
-  function getTransientSwap() external view returns (Swap memory swap) {
-    swap = Utils.loadTransientSwap(SWAP_TRANSIENT_KEY);
+  function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap) {
+    isSameContractSwap = Utils.loadTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
   }
 
   /**

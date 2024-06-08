@@ -32,7 +32,7 @@ describe("tokenSwapper 1155 testing", function () {
 
   async function deployMyTokenFixture() {
     const MyTokenFactory = await ethers.getContractFactory("My1155Token");
-    myToken = await MyTokenFactory.deploy(owner);
+    myToken = await MyTokenFactory.deploy(owner, tokenSwapperAddress);
     myTokenAddress = await myToken.getAddress();
   }
 
@@ -98,7 +98,7 @@ describe("tokenSwapper 1155 testing", function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "ValueOrTokenMissing",
+        "ZeroAddressSetForValidTokenType",
       );
     });
 
@@ -107,7 +107,7 @@ describe("tokenSwapper 1155 testing", function () {
 
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "ValueOrTokenMissing",
+        "ZeroAddressSetForValidTokenType",
       );
     });
 
@@ -116,13 +116,15 @@ describe("tokenSwapper 1155 testing", function () {
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       await expect(
         tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH }),
-      ).to.be.revertedWithCustomError(tokenSwapper, "TokenIdSetForZeroAddress");
+      ).to.be.revertedWithCustomError(tokenSwapper, "ZeroAddressSetForValidTokenType");
     });
 
     it("Fails with no value and no token data", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = 0n;
       defaultSwap.initiatorTokenId = 0n;
+      defaultSwap.initiatorTokenQuantity = 0n;
+      defaultSwap.initiatorTokenType = 0n;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ValueOrTokenMissing",
@@ -134,7 +136,7 @@ describe("tokenSwapper 1155 testing", function () {
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "TokenIdSetForZeroAddress",
+        "ZeroAddressSetForValidTokenType",
       );
     });
 
@@ -182,11 +184,27 @@ describe("tokenSwapper 1155 testing", function () {
       );
     });
 
-    it("Fails with no tokenId or amount", async function () {
+    it("Fails with no tokenId", async function () {
       defaultSwap.initiatorTokenId = 0n;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "ValueOrTokenMissing",
+        "TokenIdMissing",
+      );
+    });
+
+    it("Fails with no amount", async function () {
+      defaultSwap.initiatorTokenQuantity = 0n;
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "TokenQuantityMissing",
+      );
+    });
+
+    it("Fails with no amount", async function () {
+      defaultSwap.acceptorTokenQuantity = 0n;
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "TokenQuantityMissing",
       );
     });
 
@@ -194,6 +212,8 @@ describe("tokenSwapper 1155 testing", function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       defaultSwap.initiatorTokenId = 0n;
+      defaultSwap.initiatorTokenType = 0n;
+      defaultSwap.initiatorTokenQuantity = 0n;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
         value: GENERIC_SWAP_ETH,
       });
@@ -206,6 +226,8 @@ describe("tokenSwapper 1155 testing", function () {
     it("Initiates with empty acceptor contract address and ETH value set", async function () {
       defaultSwap.acceptorERCContract = ethers.ZeroAddress;
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorTokenType = 0n;
+      defaultSwap.acceptorTokenQuantity = 0n;
       defaultSwap.acceptorTokenId = 0n;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 

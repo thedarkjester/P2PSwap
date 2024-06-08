@@ -127,14 +127,19 @@ interface ISwapTokens {
   error ValueOrTokenMissing();
 
   /**
-   * @dev Thrown when the tokenAddress is zero address but the token or amount is set.
+   * @dev Thrown when the initiator is not providing a token or a value for either initiator or acceptor.
    */
-  error TokenIdSetForZeroAddress();
+  error ZeroAddressSetForValidTokenType();
 
   /**
-   * @dev Thrown when the tokenAddress is zero address but the quantity is set.
+   * @dev Thrown when the tokenAddress is zero address but the token or amount is set.
    */
-  error TokenQuantitySetForZeroAddress();
+  error TokenIdMissing();
+
+  /**
+   * @dev Thrown when the tokenAddress is zero address but the token or amount is set.
+   */
+  error TokenQuantityMissing();
 
   /**
    * @dev Thrown when ETH is not provided on completing the swap.
@@ -200,10 +205,10 @@ interface ISwapTokens {
   function withdraw() external;
 
   /**
-   * @notice Retrieves the Swap in transient storage.
-   * @return swap The swap stored in transient storage.
+   * @notice Retrieves the isSameContractSwap in transient storage.
+   * @return isSameContractSwap If tokens are swapped between two parties on the same contract.
    */
-  function getTransientSwap() external view returns (Swap memory swap);
+  function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap);
 
   /**
    * @notice Retrieves the NFT status.

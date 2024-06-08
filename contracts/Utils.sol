@@ -54,26 +54,19 @@ library Utils {
     }
   }
 
-  function tstoreAddress(bytes32 _key, ISwapTokens.Swap memory _swap) internal {
+  function storeTransientBool(bytes32 _key, bool _storedBool) internal {
     assembly {
-      tstore(_key, _swap)
+      tstore(_key, _storedBool)
     }
   }
 
-  function storeTransientSwap(bytes32 _key, ISwapTokens.Swap memory _swap) internal {
-    assembly {
-      tstore(_key, _swap)
-    }
+  function wipeTransientBool(bytes32 _key) internal {
+    storeTransientBool(_key, false);
   }
 
-  function wipeTransientSwap(bytes32 _key) internal {
-    ISwapTokens.Swap memory swap;
-    storeTransientSwap(_key, swap);
-  }
-
-  function loadTransientSwap(bytes32 _key) internal view returns (ISwapTokens.Swap memory swap) {
+  function loadTransientBool(bytes32 _key) internal view returns (bool boolValue) {
     assembly {
-      swap := tload(_key)
+      boolValue := tload(_key)
     }
   }
 }

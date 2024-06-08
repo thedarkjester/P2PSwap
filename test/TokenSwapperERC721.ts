@@ -98,7 +98,7 @@ describe("tokenSwapper 721 testing", function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "ValueOrTokenMissing",
+        "ZeroAddressSetForValidTokenType",
       );
     });
 
@@ -107,22 +107,23 @@ describe("tokenSwapper 721 testing", function () {
 
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "ValueOrTokenMissing",
+        "ZeroAddressSetForValidTokenType",
       );
     });
 
-    it("Fails with empty initiator contract address and tokenIdOrAmount set", async function () {
-      defaultSwap.initiatorERCContract = ethers.ZeroAddress;
+    it("Fails with no tokenId set", async function () {
+      defaultSwap.initiatorTokenId = 0n;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       await expect(
         tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH }),
-      ).to.be.revertedWithCustomError(tokenSwapper, "TokenIdSetForZeroAddress");
+      ).to.be.revertedWithCustomError(tokenSwapper, "TokenIdMissing");
     });
 
     it("Fails with no value and no token data", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = 0;
       defaultSwap.initiatorTokenId = 0;
+      defaultSwap.initiatorTokenType = 0;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ValueOrTokenMissing",
@@ -134,7 +135,7 @@ describe("tokenSwapper 721 testing", function () {
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "TokenIdSetForZeroAddress",
+        "ZeroAddressSetForValidTokenType",
       );
     });
 
@@ -182,18 +183,11 @@ describe("tokenSwapper 721 testing", function () {
       );
     });
 
-    it("Fails with no tokenId or amount", async function () {
-      defaultSwap.initiatorTokenId = 0n;
-      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
-        tokenSwapper,
-        "ValueOrTokenMissing",
-      );
-    });
-
     it("Initiates with empty initiator contract address and ETH value set", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       defaultSwap.initiatorTokenId = 0;
+      defaultSwap.initiatorTokenType = 0;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
         value: GENERIC_SWAP_ETH,
       });
@@ -207,6 +201,7 @@ describe("tokenSwapper 721 testing", function () {
       defaultSwap.acceptorERCContract = ethers.ZeroAddress;
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
       defaultSwap.acceptorTokenId = 0;
+      defaultSwap.acceptorTokenType = 0;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
       const expectedHash = keccakSwap(defaultSwap);

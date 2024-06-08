@@ -77,6 +77,7 @@ contract Reentry1155Tester is IERC1155Receiver {
       });
 
       ISwapTokens swapperRemover = ISwapTokens(swapperAddress);
+
       swapperAddress = swapperAddress;
       swapperRemover.removeSwap(2, swap);
     }
