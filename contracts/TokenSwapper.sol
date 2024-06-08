@@ -5,7 +5,7 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { ISwapTokens } from "./ISwapTokens.sol";
-import { Utils } from "./Utils.sol";
+import { TokenSwapperUtils } from "./TokenSwapperUtils.sol";
 
 /**
  * @title A simple NFT swapper contract with no fee takers.
@@ -19,7 +19,7 @@ contract TokenSwapper is ISwapTokens {
 
   bytes32 private constant REENTRY_TRANSIENT_KEY = bytes32(uint256(keccak256("eip1967.reentry.transient.key")) - 1);
 
-  using Utils for *;
+  using TokenSwapperUtils for *;
 
   address private constant ZERO_ADDRESS = address(0);
 
@@ -88,80 +88,11 @@ contract TokenSwapper is ISwapTokens {
 
     unchecked {
       uint256 newSwapId = swapId++;
-      swapHashes[newSwapId] = Utils.hashTokenSwap(_swap);
 
       // _swap emitted to pass in later when querying, completing or removing
       emit SwapInitiated(newSwapId, msg.sender, _swap.acceptor, _swap);
-    }
-  }
 
-  function getTokenTypeValidator(
-    TokenType _tokenType
-  ) internal pure returns (function(address, uint256, uint256, uint256) internal pure) {
-    if (_tokenType == TokenType.ERC721) {
-      return validateERC721SwapParameters;
-    }
-
-    if (_tokenType == TokenType.ERC20 || _tokenType == TokenType.ERC777) {
-      return validateERC20SwapParameters;
-    }
-
-    if (_tokenType == TokenType.ERC1155) {
-      return validateERC1155SwapParameters;
-    }
-
-    return validateNoTokenTypeSwapParameters;
-  }
-
-  function validateERC20SwapParameters(address _ercContract, uint256, uint256, uint256 _tokenQuantity) internal pure {
-    // validate address exists
-    if (_ercContract == ZERO_ADDRESS) {
-      revert ZeroAddressSetForValidTokenType();
-    }
-
-    // validate quantity > 0
-    if (_tokenQuantity == 0) {
-      revert TokenQuantityMissing();
-    }
-  }
-
-  function validateERC721SwapParameters(address _ercContract, uint256, uint256 _tokenId, uint256) internal pure {
-    // validate address exists
-    if (_ercContract == ZERO_ADDRESS) {
-      revert ZeroAddressSetForValidTokenType();
-    }
-
-    // validate _tokenId > 0
-    if (_tokenId == 0) {
-      revert TokenIdMissing();
-    }
-  }
-
-  function validateERC1155SwapParameters(
-    address _ercContract,
-    uint256,
-    uint256 _tokenId,
-    uint256 _tokenQuantity
-  ) internal pure {
-    // validate address exists
-    if (_ercContract == ZERO_ADDRESS) {
-      revert ZeroAddressSetForValidTokenType();
-    }
-
-    // validate _tokenId > 0
-    if (_tokenId == 0) {
-      revert TokenIdMissing();
-    }
-
-    // validate quantity > 0
-    if (_tokenQuantity == 0) {
-      revert TokenQuantityMissing();
-    }
-  }
-
-  function validateNoTokenTypeSwapParameters(address, uint256 _ethPortion, uint256, uint256) internal pure {
-    if (_ethPortion == 0) {
-      revert ValueOrTokenMissing();
+      swapHashes[newSwapId] = TokenSwapperUtils.hashTokenSwap(_swap);
     }
   }
 
@@ -174,7 +105,7 @@ contract TokenSwapper is ISwapTokens {
    * @param _swap The swap data to use and verify.
    */
   function completeSwap(uint256 _swapId, Swap memory _swap) external payable nonReentrant {
-    if (swapHashes[_swapId] != Utils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -209,7 +140,10 @@ contract TokenSwapper is ISwapTokens {
 
     emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
 
-    Utils.storeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY, _swap.acceptorERCContract == _swap.initiatorERCContract);
+    TokenSwapperUtils.storeTransientBool(
+      SAME_CONTRACT_SWAP_TRANSIENT_KEY,
+      _swap.acceptorERCContract == _swap.initiatorERCContract
+    );
 
     getTokenTransfer(_swap.initiatorTokenType)(
       _swap.initiatorERCContract,
@@ -227,7 +161,7 @@ contract TokenSwapper is ISwapTokens {
       _swap.initiator
     );
 
-    Utils.wipeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
+    TokenSwapperUtils.wipeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
   }
 
   /**
@@ -237,7 +171,7 @@ contract TokenSwapper is ISwapTokens {
    * @param _swapId The ID of the swap.
    */
   function removeSwap(uint256 _swapId, Swap memory _swap) external nonReentrant {
-    if (swapHashes[_swapId] != Utils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -290,26 +224,20 @@ contract TokenSwapper is ISwapTokens {
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
   function getSwapStatus(uint256 _swapId, Swap memory _swap) external view returns (SwapStatus memory swapStatus) {
-    if (swapHashes[_swapId] != Utils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    (bool initiatorNeedsToOwnToken, bool initiatorTokenRequiresApproval) = getTokenSwapStatus(_swap.initiatorTokenType)(
-      _swap.initiatorERCContract,
-      _swap.initiatorTokenId,
-      _swap.initiatorTokenQuantity,
-      _swap.initiator
-    );
+    (bool initiatorNeedsToOwnToken, bool initiatorTokenRequiresApproval) = getTokenSwapStatusFunction(
+      _swap.initiatorTokenType
+    )(_swap.initiatorERCContract, _swap.initiatorTokenId, _swap.initiatorTokenQuantity, _swap.initiator);
 
     swapStatus.initiatorNeedsToOwnToken = initiatorNeedsToOwnToken;
     swapStatus.initiatorTokenRequiresApproval = initiatorTokenRequiresApproval;
 
-    (bool acceptorNeedsToOwnToken, bool acceptorTokenRequiresApproval) = getTokenSwapStatus(_swap.acceptorTokenType)(
-      _swap.acceptorERCContract,
-      _swap.acceptorTokenId,
-      _swap.acceptorTokenQuantity,
-      _swap.acceptor
-    );
+    (bool acceptorNeedsToOwnToken, bool acceptorTokenRequiresApproval) = getTokenSwapStatusFunction(
+      _swap.acceptorTokenType
+    )(_swap.acceptorERCContract, _swap.acceptorTokenId, _swap.acceptorTokenQuantity, _swap.acceptor);
 
     swapStatus.acceptorNeedsToOwnToken = acceptorNeedsToOwnToken;
     swapStatus.acceptorTokenRequiresApproval = acceptorTokenRequiresApproval;
@@ -322,14 +250,110 @@ contract TokenSwapper is ISwapTokens {
   }
 
   function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap) {
-    isSameContractSwap = Utils.loadTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
+    isSameContractSwap = TokenSwapperUtils.loadTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
+  }
+
+  /**
+   * @notice Returns dynamic token type validator.
+   * @param _tokenType The token type to return.
+   * @return The parameter validator for the token type.
+   */
+  function getTokenTypeValidator(
+    TokenType _tokenType
+  ) internal pure returns (function(address, uint256, uint256, uint256) internal pure) {
+    if (_tokenType == TokenType.ERC721) {
+      return validateERC721SwapParameters;
+    }
+
+    if (_tokenType == TokenType.ERC20 || _tokenType == TokenType.ERC777) {
+      return validateERC20SwapParameters;
+    }
+
+    if (_tokenType == TokenType.ERC1155) {
+      return validateERC1155SwapParameters;
+    }
+
+    return validateNoTokenTypeSwapParameters;
+  }
+
+  /**
+   * @notice Validates ERC20 parameters.
+   * @param _ercContract The ERC20 contract.
+   * @param _tokenQuantity The token quantity.
+   */
+  function validateERC20SwapParameters(address _ercContract, uint256, uint256, uint256 _tokenQuantity) internal pure {
+    // validate address exists
+    if (_ercContract == ZERO_ADDRESS) {
+      revert ZeroAddressSetForValidTokenType();
+    }
+
+    // validate quantity > 0
+    if (_tokenQuantity == 0) {
+      revert TokenQuantityMissing();
+    }
+  }
+
+  /**
+   * @notice Validates ERC721 parameters.
+   * @param _ercContract The ERC721 contract.
+   * @param _tokenId The tokenId.
+   */
+  function validateERC721SwapParameters(address _ercContract, uint256, uint256 _tokenId, uint256) internal pure {
+    // validate address exists
+    if (_ercContract == ZERO_ADDRESS) {
+      revert ZeroAddressSetForValidTokenType();
+    }
+
+    // validate _tokenId > 0
+    if (_tokenId == 0) {
+      revert TokenIdMissing();
+    }
+  }
+
+  /**
+   * @notice Validates ERC1155 parameters.
+   * @param _ercContract The ERC1155 contract.
+   * @param _tokenId The tokenId.
+   * @param _tokenQuantity The tokenId.
+   */
+  function validateERC1155SwapParameters(
+    address _ercContract,
+    uint256,
+    uint256 _tokenId,
+    uint256 _tokenQuantity
+  ) internal pure {
+    // validate address exists
+    if (_ercContract == ZERO_ADDRESS) {
+      revert ZeroAddressSetForValidTokenType();
+    }
+
+    // validate _tokenId > 0
+    if (_tokenId == 0) {
+      revert TokenIdMissing();
+    }
+
+    // validate quantity > 0
+    if (_tokenQuantity == 0) {
+      revert TokenQuantityMissing();
+    }
+  }
+
+  /**
+   * @notice Validates token type none parameters.
+   * @param _ethPortion The ETH portion of the side of the swap.
+   */
+  function validateNoTokenTypeSwapParameters(address, uint256 _ethPortion, uint256, uint256) internal pure {
+    if (_ethPortion == 0) {
+      revert ValueOrTokenMissing();
+    }
   }
 
   /**
    * @notice Retrieves the function to determine a swap's status based on token type.
-   * @return The swap function.
+   * @param _tokenType The token type to return.
+   * @return The swap status checking function.
    */
-  function getTokenSwapStatus(
+  function getTokenSwapStatusFunction(
     TokenType _tokenType
   ) internal pure returns (function(address, uint256, uint256, address) view returns (bool, bool)) {
     if (_tokenType == TokenType.ERC20 || _tokenType == TokenType.ERC777) {
@@ -348,7 +372,83 @@ contract TokenSwapper is ISwapTokens {
   }
 
   /**
+   * @notice Retrieves the function to determine a swap's status based on ERC20 token type.
+   * @param _tokenAddress The token address being checked.
+   * @param _tokenQuantity The token quantity being swapped.
+   * @param _tokenOwner The expected owber of the token(s).
+   * @return needsToOwnToken Does the user need to own the token.
+   * @return tokenRequiresApproval Does the user need to grant approval.
+   */
+  function erc20Status(
+    address _tokenAddress,
+    uint256,
+    uint256 _tokenQuantity,
+    address _tokenOwner
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
+    IERC20 erc20Token = IERC20(_tokenAddress);
+
+    needsToOwnToken = erc20Token.balanceOf(_tokenOwner) < _tokenQuantity;
+    tokenRequiresApproval = erc20Token.allowance(_tokenOwner, address(this)) < _tokenQuantity;
+  }
+
+  /**
+   * @notice Retrieves the function to determine a swap's status based on ERC721 token type.
+   * @param _tokenAddress The token address being checked.
+   * @param _tokenId The token Id being swapped.
+   * @param _tokenOwner The expected owber of the token(s).
+   * @return needsToOwnToken Does the user need to own the token.
+   * @return tokenRequiresApproval Does the user need to grant approval.
+   */
+  function erc721Status(
+    address _tokenAddress,
+    uint256 _tokenId,
+    uint256,
+    address _tokenOwner
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
+    IERC721 erc721Token = IERC721(_tokenAddress);
+
+    needsToOwnToken = erc721Token.ownerOf(_tokenId) != _tokenOwner;
+    tokenRequiresApproval = erc721Token.getApproved(_tokenId) != address(this);
+  }
+
+  /**
+   * @notice Retrieves the function to determine a swap's status based on ERC1155 token type.
+   * @param _tokenAddress The token address being checked.
+   * @param _tokenId The token Id being swapped.
+   * @param _tokenQuantity The token quantity being swapped.
+   * @param _tokenOwner The expected owber of the token(s).
+   * @return needsToOwnToken Does the user need to own the token.
+   * @return tokenRequiresApproval Does the user need to grant approval.
+   */
+  function erc1155Status(
+    address _tokenAddress,
+    uint256 _tokenId,
+    uint256 _tokenQuantity,
+    address _tokenOwner
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
+    IERC1155 erc1155Token = IERC1155(_tokenAddress);
+
+    needsToOwnToken = erc1155Token.balanceOf(_tokenOwner, _tokenId) < _tokenQuantity;
+    tokenRequiresApproval = !erc1155Token.isApprovedForAll(_tokenOwner, address(this));
+  }
+
+  /**
+   * @notice Retrieves the function to determine a swap's status based on NONE token type.
+   * @dev default false values are expected.
+   * @return needsToOwnToken Does the user need to own the token.
+   * @return tokenRequiresApproval Does the user need to grant approval.
+   */
+  function noneStatus(
+    address,
+    uint256,
+    uint256,
+    address
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {}
+
+  /**
    * @notice Retrieves the function to transfer a swap's token based on token type.
+   * @param _tokenType The token type to return.
+   * @return Returns the function to do the transferring for the token type.
    */
   function getTokenTransfer(
     TokenType _tokenType
@@ -369,7 +469,11 @@ contract TokenSwapper is ISwapTokens {
   }
 
   /**
-   * @notice Retrieves the function to transfer a swap's token based on token type.
+   * @notice Retrieves the function to transfer a swap's token based on ERC20 token type.
+   * @param _tokenAddress The token address being checked.
+   * @param _tokenQuantity The token quantity being swapped.
+   * @param _tokenOwner The expected owber of the token(s).
+   * @param _recipient The token recipient.
    */
   function erc20Transferer(
     address _tokenAddress,
@@ -383,6 +487,13 @@ contract TokenSwapper is ISwapTokens {
     }
   }
 
+  /**
+   * @notice Retrieves the function to transfer a swap's token based on ERC721 token type.
+   * @param _tokenAddress The token address being checked.
+   * @param _tokenId The token Id being swapped.
+   * @param _tokenOwner The expected owber of the token(s).
+   * @param _recipient The token recipient.
+   */
   function erc721Transferer(
     address _tokenAddress,
     uint256 _tokenId,
@@ -393,6 +504,14 @@ contract TokenSwapper is ISwapTokens {
     IERC721(_tokenAddress).safeTransferFrom(_tokenOwner, _recipient, _tokenId);
   }
 
+  /**
+   * @notice Retrieves the function to transfer a swap's token based on ERC721 token type.
+   * @param _tokenAddress The token address being checked.
+   * @param _tokenId The token Id being swapped.
+   * @param _tokenQuantity The token quantity being swapped.
+   * @param _tokenOwner The expected owber of the token(s).
+   * @param _recipient The token recipient.
+   */
   function erc1155Transferer(
     address _tokenAddress,
     uint256 _tokenId,
@@ -403,59 +522,20 @@ contract TokenSwapper is ISwapTokens {
     IERC1155(_tokenAddress).safeTransferFrom(_tokenOwner, _recipient, _tokenId, _tokenQuantity, "0x");
   }
 
+  /**
+   * @notice Retrieves the function to transfer a swap's token based on NONE token type.
+   * @dev While this seems counterintuitive to do nothing, it is cleaner this way.
+   */
   function noneTransferer(address, uint256, uint256, address, address) internal pure {}
 
-  function erc20Status(
-    address _tokenAddress,
-    uint256,
-    uint256 _tokenQuantity,
-    address _tokenOwner
-  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
-    IERC20 erc20Token = IERC20(_tokenAddress);
-
-    needsToOwnToken = erc20Token.balanceOf(_tokenOwner) < _tokenQuantity;
-    tokenRequiresApproval = erc20Token.allowance(_tokenOwner, address(this)) < _tokenQuantity;
-  }
-
-  function erc721Status(
-    address _tokenAddress,
-    uint256 _tokenId,
-    uint256,
-    address _tokenOwner
-  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
-    IERC721 erc721Token = IERC721(_tokenAddress);
-
-    needsToOwnToken = erc721Token.ownerOf(_tokenId) != _tokenOwner;
-    tokenRequiresApproval = erc721Token.getApproved(_tokenId) != address(this);
-  }
-
-  function erc1155Status(
-    address _tokenAddress,
-    uint256 _tokenId,
-    uint256 _tokenQuantity,
-    address _tokenOwner
-  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
-    IERC1155 erc1155Token = IERC1155(_tokenAddress);
-
-    needsToOwnToken = erc1155Token.balanceOf(_tokenOwner, _tokenId) < _tokenQuantity;
-    tokenRequiresApproval = !erc1155Token.isApprovedForAll(_tokenOwner, address(this));
-  }
-
-  function noneStatus(
-    address,
-    uint256,
-    uint256,
-    address
-  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {}
-
   modifier nonReentrant() {
-    if (Utils.loadTransientBool(REENTRY_TRANSIENT_KEY)) {
+    if (TokenSwapperUtils.loadTransientBool(REENTRY_TRANSIENT_KEY)) {
       revert NoReentry();
     }
 
-    Utils.storeTransientBool(REENTRY_TRANSIENT_KEY, true);
+    TokenSwapperUtils.storeTransientBool(REENTRY_TRANSIENT_KEY, true);
     _;
-    Utils.wipeTransientBool(REENTRY_TRANSIENT_KEY);
+    TokenSwapperUtils.wipeTransientBool(REENTRY_TRANSIENT_KEY);
   }
 }
 
