@@ -11,12 +11,24 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
+        version: "0.8.26",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          //viaIR: true,
+          evmVersion: "cancun",
+        },
+      },
+      {
         version: "0.8.24",
         settings: {
           optimizer: {
             enabled: true,
             runs: 200,
           },
+          viaIR: true,
           evmVersion: "cancun",
         },
       },

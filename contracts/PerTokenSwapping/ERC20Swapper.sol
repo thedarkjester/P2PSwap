@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.26;
 
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { IERC721Swapper } from "./IERC721Swapper.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Swapper } from "./IERC20Swapper.sol";
+import { Utils } from "./Utils.sol";
 
 /**
  * @title A simple NFT swapper contract with no fee takers.
@@ -10,7 +11,8 @@ import { IERC721Swapper } from "./IERC721Swapper.sol";
  * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-contract ERC721Swapper is IERC721Swapper {
+contract ERC20Swapper is IERC20Swapper {
+  using Utils for *;
   address private constant ZERO_ADDRESS = address(0);
 
   // user account => balance
@@ -34,10 +36,10 @@ contract ERC721Swapper is IERC721Swapper {
    * @param _swap The full swap details.
    */
   function initiateSwap(Swap memory _swap) external payable {
-    if (_swap.initiatorNftContract == ZERO_ADDRESS) {
+    if (_swap.initiatorErcContract == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
     }
-    if (_swap.acceptorNftContract == ZERO_ADDRESS) {
+    if (_swap.acceptorErcContract == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
     }
 
@@ -57,9 +59,18 @@ contract ERC721Swapper is IERC721Swapper {
       revert TwoWayEthPortionsDisallowed();
     }
 
+    if (_swap.initiatorETHPortion == 0 && _swap.initiatorTokenAmount == 0) {
+      revert MissingInitiatorSwapValues();
+    }
+
+    if (_swap.acceptorETHPortion == 0 && _swap.acceptorTokenAmount == 0) {
+      revert MissingAcceptorSwapValues();
+    }
+
     unchecked {
       uint256 newSwapId = swapId++;
-      swapHashes[newSwapId] = hashSwap(_swap);
+      swapHashes[newSwapId] = Utils.hashSwap(_swap);
+      (_swap);
 
       // _swap emitted to pass in later when querying, completing or removing
       emit SwapInitiated(newSwapId, msg.sender, _swap.acceptor, _swap);
@@ -75,7 +86,7 @@ contract ERC721Swapper is IERC721Swapper {
    * @param _swap The swap data to use and verify.
    */
   function completeSwap(uint256 _swapId, Swap memory _swap) external payable {
-    if (swapHashes[_swapId] != hashSwap(_swap)) {
+    if (swapHashes[_swapId] != Utils.hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -110,8 +121,15 @@ contract ERC721Swapper is IERC721Swapper {
 
     emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
 
-    IERC721(_swap.initiatorNftContract).safeTransferFrom(_swap.initiator, _swap.acceptor, _swap.initiatorTokenId);
-    IERC721(_swap.acceptorNftContract).safeTransferFrom(_swap.acceptor, _swap.initiator, _swap.acceptorTokenId);
+    /// @dev There are tests that cover front-running balance moving or allowance changing, the ERC20 will fail transfer.
+    /// @dev Because of the cast, the errors are bubbled up (InsufficientBalance/Allowance).
+    if (_swap.initiatorTokenAmount > 0) {
+      IERC20(_swap.initiatorErcContract).transferFrom(_swap.initiator, _swap.acceptor, _swap.initiatorTokenAmount);
+    }
+
+    if (_swap.acceptorTokenAmount > 0) {
+      IERC20(_swap.acceptorErcContract).transferFrom(_swap.acceptor, _swap.initiator, _swap.acceptorTokenAmount);
+    }
   }
 
   /**
@@ -121,7 +139,7 @@ contract ERC721Swapper is IERC721Swapper {
    * @param _swapId The ID of the swap.
    */
   function removeSwap(uint256 _swapId, Swap memory _swap) external {
-    if (swapHashes[_swapId] != hashSwap(_swap)) {
+    if (swapHashes[_swapId] != Utils.hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -156,7 +174,7 @@ contract ERC721Swapper is IERC721Swapper {
 
     emit BalanceWithDrawn(msg.sender, callerBalance);
 
-    bytes4 errorSelector = IERC721Swapper.ETHSendingFailed.selector;
+    bytes4 errorSelector = IERC20Swapper.ETHSendingFailed.selector;
     assembly {
       let success := call(gas(), caller(), callerBalance, 0, 0, 0, 0)
       if iszero(success) {
@@ -168,42 +186,28 @@ contract ERC721Swapper is IERC721Swapper {
   }
 
   /**
-   * @notice Retrieves the NFT status.
+   * @notice Retrieves the Swap status.
    * @param _swapId The ID of the swap.
    * @param _swap The swap details.
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
   function getSwapStatus(uint256 _swapId, Swap memory _swap) external view returns (SwapStatus memory swapStatus) {
-    if (swapHashes[_swapId] != hashSwap(_swap)) {
+    if (swapHashes[_swapId] != Utils.hashSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    IERC721 initiatorNftContract = IERC721(_swap.initiatorNftContract);
+    IERC20 initiatorErcContract = IERC20(_swap.initiatorErcContract);
 
-    swapStatus.initiatorOwnsToken = initiatorNftContract.ownerOf(_swap.initiatorTokenId) == _swap.initiator;
-    swapStatus.initiatorApprovalsSet = initiatorNftContract.getApproved(_swap.initiatorTokenId) == address(this);
+    swapStatus.initiatorHasBalance = initiatorErcContract.balanceOf(_swap.initiator) >= _swap.initiatorTokenAmount;
+    swapStatus.initiatorApprovalsSet =
+      initiatorErcContract.allowance(_swap.initiator, address(this)) >= _swap.initiatorTokenAmount;
 
-    IERC721 acceptorNftContract = IERC721(_swap.acceptorNftContract);
-    swapStatus.acceptorOwnsToken = acceptorNftContract.ownerOf(_swap.acceptorTokenId) == _swap.acceptor;
-    swapStatus.acceptorApprovalsSet = acceptorNftContract.getApproved(_swap.acceptorTokenId) == address(this);
-  }
-
-  /**
-   * @notice Gas efficient swap hashing using inline assembly.
-   * @dev The struct is calldata throughout.
-   * @dev There are 8 items in the struct, each using 32 bytes in calldata when used,
-   * so to hash it we use 0x100 (256), or 8*32 (256) bytes.
-   * @param _swap The full Swap struct.
-   */
-  function hashSwap(Swap memory _swap) internal pure returns (bytes32 swapHash) {
-    assembly {
-      let mPtr := mload(0x40)
-      mcopy(mPtr, _swap, 0x100)
-      swapHash := keccak256(mPtr, 0x100)
-    }
+    IERC20 acceptorErcContract = IERC20(_swap.acceptorErcContract);
+    swapStatus.acceptorHasBalance = acceptorErcContract.balanceOf(_swap.acceptor) >= _swap.acceptorTokenAmount;
+    swapStatus.acceptorApprovalsSet =
+      acceptorErcContract.allowance(_swap.acceptor, address(this)) >= _swap.acceptorTokenAmount;
   }
 }
-
 /*   
                                                               
 T H E D A R K J E S T E R . E T H

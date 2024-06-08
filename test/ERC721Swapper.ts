@@ -594,13 +594,6 @@ describe("ERC721Swapper", function () {
   });
 });
 
-// struct SwapStatus {
-//   bool initiatorOwnsToken;
-//   bool acceptorOwnsToken;
-//   bool initiatorApprovalsSet;
-//   bool acceptorApprovalsSet;
-// }
-
 export function getDefaultSwap(tokenAddress: string, swapper1Address: string, swapper2Address: string): Swap {
   return {
     initiatorNftContract: tokenAddress,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.26;
 
 /**
  * @title A simple NFT swapper contract with no fee takers.
@@ -7,7 +7,7 @@ pragma solidity 0.8.24;
  * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-interface IERC721Swapper {
+interface IERC20Swapper {
   /**
    * @dev Emitted when a new swap is initiated.
    * @param swapId The unique swapId.
@@ -44,19 +44,19 @@ interface IERC721Swapper {
    * @dev initiatorNftContract is the contract address for the initiator's NFT.
    * @dev acceptorNftContract is the contract address for the acceptors's NFT (may be same as initiator's).
    * @dev initiator is the address for the account initiating the swap.
-   * @dev initiatorTokenId is the NFT Id for the initiator's token.
+   * @dev initiatorTokenAmount is the ERC amount for the acceptor's token.
    * @dev acceptor is the address for the account accepting the swap.
-   * @dev acceptorTokenId is the NFT Id for the acceptor's token.
+   * @dev acceptorTokenAmount is the ERC amount for the acceptor's token.
    * @dev initiatorETHPortion is the ETH sweetener offered by the intiator.
    * @dev acceptorETHPortion is the ETH sweetener to be provided by the acceptor.
    */
   struct Swap {
-    address initiatorNftContract;
-    address acceptorNftContract;
+    address initiatorErcContract;
+    address acceptorErcContract;
     address initiator;
-    uint256 initiatorTokenId;
+    uint256 initiatorTokenAmount;
     address acceptor;
-    uint256 acceptorTokenId;
+    uint256 acceptorTokenAmount;
     uint256 initiatorETHPortion;
     uint256 acceptorETHPortion;
   }
@@ -69,8 +69,8 @@ interface IERC721Swapper {
    * @dev all have to be true for the swap to work.
    */
   struct SwapStatus {
-    bool initiatorOwnsToken;
-    bool acceptorOwnsToken;
+    bool initiatorHasBalance;
+    bool acceptorHasBalance;
     bool initiatorApprovalsSet;
     bool acceptorApprovalsSet;
   }
@@ -129,6 +129,26 @@ interface IERC721Swapper {
    * @param actual The actual initator ETH portion (msg.value).
    */
   error InitiatorEthPortionNotMatched(uint256 expected, uint256 actual);
+
+  /**
+   * @dev Thrown when the initiator to the acceptor transfer fails.
+   */
+  error TransferToInitiatorFailed();
+
+  /**
+   * @dev Thrown when the initiator to the initiator transfer fails.
+   */
+  error TransferToAcceptorFailed();
+
+  /**
+   * @dev Thrown when the initiator swap has no value to swap.
+   */
+  error MissingInitiatorSwapValues();
+
+  /**
+   * @dev Thrown when the acceptor swap has no value to swap.
+   */
+  error MissingAcceptorSwapValues();
 
   /**
    * @notice Initiates a swap of two NFTs.
