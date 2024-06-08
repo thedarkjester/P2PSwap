@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
-import { IERC721Swapper } from "../IERC721Swapper.sol";
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { ISwapTokens } from "../ISwapTokens.sol";
+import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
 contract Reentry1155Tester is IERC1155Receiver {
@@ -9,68 +9,74 @@ contract Reentry1155Tester is IERC1155Receiver {
   address private target;
 
   function initiateSwap(
-    address _initiatorNftContract,
-    address _acceptorNftContract,
+    address _initiatorERCContract,
+    address _acceptorERCContract,
     address _acceptor,
     uint256 _acceptorETHPortion,
     uint256 _initiatorTokenId,
     uint256 _acceptorTokenId,
     address _swapperAddress
   ) external payable {
-    IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
+    ISwapTokens swapper = ISwapTokens(_swapperAddress);
 
-    IERC721Swapper.Swap memory swap = IERC721Swapper.Swap({
-      initiatorNftContract: _initiatorNftContract,
-      acceptorNftContract: _acceptorNftContract,
+    ISwapTokens.Swap memory swap = ISwapTokens.Swap({
+      initiatorERCContract: _initiatorERCContract,
+      acceptorERCContract: _acceptorERCContract,
       initiator: address(this),
       initiatorTokenId: _initiatorTokenId,
+      initiatorTokenQuantity: 1,
       acceptor: _acceptor,
       acceptorTokenId: _acceptorTokenId,
+      acceptorTokenQuantity: 1,
       initiatorETHPortion: msg.value,
-      acceptorETHPortion: _acceptorETHPortion
+      acceptorETHPortion: _acceptorETHPortion,
+      initiatorTokenType: ISwapTokens.TokenType.ERC1155,
+      acceptorTokenType: ISwapTokens.TokenType.ERC1155
     });
 
     swapper.initiateSwap{ value: msg.value }(swap);
   }
 
-  function onERC1155Received(
-    address operator,
-    address from,
-    uint256 id,
-    uint256 value,
-    bytes calldata data
-  ) external returns (bytes4) {
+  function onERC1155Received(address, address, uint256 id, uint256, bytes calldata) external returns (bytes4) {
     if (id == 1) {
-      IERC721Swapper.Swap memory swap = IERC721Swapper.Swap({
-        initiatorNftContract: msg.sender,
-        acceptorNftContract: msg.sender,
+      ISwapTokens.Swap memory swap = ISwapTokens.Swap({
+        initiatorERCContract: msg.sender,
+        acceptorERCContract: msg.sender,
         initiator: target,
         initiatorTokenId: 1,
+        initiatorTokenQuantity: 1,
         acceptor: address(this),
         acceptorTokenId: 4,
+        acceptorTokenQuantity: 1,
         initiatorETHPortion: 0,
-        acceptorETHPortion: 0
+        acceptorETHPortion: 0,
+        initiatorTokenType: ISwapTokens.TokenType.ERC1155,
+        acceptorTokenType: ISwapTokens.TokenType.ERC1155
       });
 
       swap.initiator = target;
-      IERC721Swapper swapper = IERC721Swapper(swapperAddress);
+      ISwapTokens swapper = ISwapTokens(swapperAddress);
       swapperAddress = swapperAddress;
       swapper.completeSwap(1, swap);
     }
 
     if (id == 2) {
-      IERC721Swapper.Swap memory swap = IERC721Swapper.Swap({
-        initiatorNftContract: msg.sender,
-        acceptorNftContract: msg.sender,
+      ISwapTokens.Swap memory swap = ISwapTokens.Swap({
+        initiatorERCContract: msg.sender,
+        acceptorERCContract: msg.sender,
         initiator: address(this),
         initiatorTokenId: 1,
+        initiatorTokenQuantity: 1,
         acceptor: target,
         acceptorTokenId: 2,
+        acceptorTokenQuantity: 1,
         initiatorETHPortion: 1 ether,
-        acceptorETHPortion: 0
+        acceptorETHPortion: 0,
+        initiatorTokenType: ISwapTokens.TokenType.ERC1155,
+        acceptorTokenType: ISwapTokens.TokenType.ERC1155
       });
 
-      IERC721Swapper swapperRemover = IERC721Swapper(swapperAddress);
+      ISwapTokens swapperRemover = ISwapTokens(swapperAddress);
       swapperAddress = swapperAddress;
       swapperRemover.removeSwap(2, swap);
     }
@@ -79,11 +85,11 @@ contract Reentry1155Tester is IERC1155Receiver {
   }
 
   function onERC1155BatchReceived(
-    address _operator,
-    address _from,
-    uint256[] calldata _ids,
-    uint256[] calldata _values,
-    bytes calldata _data
+    address,
+    address,
+    uint256[] calldata,
+    uint256[] calldata,
+    bytes calldata
   ) external returns (bytes4) {
     return IERC1155Receiver.onERC1155BatchReceived.selector;
   }
@@ -93,31 +99,31 @@ contract Reentry1155Tester is IERC1155Receiver {
   }
 
   function withdraw(address _swapperAddress) external {
-    IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
+    ISwapTokens swapper = ISwapTokens(_swapperAddress);
     swapper.withdraw();
   }
 
   function approveToken(uint256 _tokenId, address _nftContractAddress, address _swapperAddress) external {
-    IERC721 nftContract = IERC721(_nftContractAddress);
-    nftContract.approve(_swapperAddress, _tokenId);
+    IERC1155 nftContract = IERC1155(_nftContractAddress);
+    nftContract.setApprovalForAll(_swapperAddress, true);
   }
 
-  function removeSwap(uint256 _swapId, address _swapperAddress, IERC721Swapper.Swap calldata _swap) external {
+  function removeSwap(uint256 _swapId, address _swapperAddress, ISwapTokens.Swap calldata _swap) external {
     target = _swap.acceptor;
-    IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
+    ISwapTokens swapper = ISwapTokens(_swapperAddress);
     swapper.removeSwap(_swapId, _swap);
   }
 
-  function completeSwap(uint256 _swapId, address _swapperAddress, IERC721Swapper.Swap calldata _swap) public {
+  function completeSwap(uint256 _swapId, address _swapperAddress, ISwapTokens.Swap calldata _swap) public {
     target = _swap.initiator;
 
-    IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
+    ISwapTokens swapper = ISwapTokens(_swapperAddress);
     swapperAddress = _swapperAddress;
     swapper.completeSwap(_swapId, _swap);
   }
 
-  function completeProperSwap(uint256 _swapId, address _swapperAddress, IERC721Swapper.Swap calldata _swap) public {
-    IERC721Swapper swapper = IERC721Swapper(_swapperAddress);
+  function completeProperSwap(uint256 _swapId, address _swapperAddress, ISwapTokens.Swap calldata _swap) public {
+    ISwapTokens swapper = ISwapTokens(_swapperAddress);
     swapperAddress = _swapperAddress;
     swapper.completeSwap(_swapId, _swap);
   }
@@ -127,7 +133,7 @@ contract Reentry1155Tester is IERC1155Receiver {
   }
 
   receive() external payable {
-    IERC721Swapper swapper = IERC721Swapper(msg.sender);
+    ISwapTokens swapper = ISwapTokens(msg.sender);
     swapper.withdraw();
   }
 }

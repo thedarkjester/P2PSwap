@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { ISwapTokens, ReentryTester, TokenSwapper, ERC20B, ERC20A } from "../typechain-types";
 
-describe("tokenSwapper", function () {
+describe("tokenSwapper erc20 testing", function () {
   const GENERIC_SWAP_ETH = ethers.parseEther("1");
 
   let tokenSwapper: TokenSwapper;
@@ -754,10 +754,10 @@ export function getDefaultSwap(
     acceptorERCContract: acceptorERCContract,
     initiator: swapper1Address,
     initiatorTokenId: 0n,
-    initiatorTokenQuantity:500n,
+    initiatorTokenQuantity: 500n,
     acceptor: swapper2Address,
     acceptorTokenId: 0n,
-    acceptorTokenQuantity:500n,
+    acceptorTokenQuantity: 500n,
     initiatorETHPortion: 0n,
     acceptorETHPortion: 0n,
     initiatorTokenType: 1n,
@@ -773,7 +773,7 @@ export type ErcSwap = {
   initiatorTokenQuantity: bigint;
   acceptor: string;
   acceptorTokenId: bigint;
-  acceptorTokenQuantity:bigint;
+  acceptorTokenQuantity: bigint;
   initiatorETHPortion: bigint;
   acceptorETHPortion: bigint;
   initiatorTokenType: bigint;
@@ -793,7 +793,20 @@ export const encodeData = (paramTypes: string[], paramValues: unknown[], encodeP
 
 export function keccakSwap(swap: ISwapTokens.SwapStruct) {
   return abiEncodeAndKeccak256(
-    ["address", "address", "address", "uint256","uint256", "address", "uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+    [
+      "address",
+      "address",
+      "address",
+      "uint256",
+      "uint256",
+      "address",
+      "uint256",
+      "uint256",
+      "uint256",
+      "uint256",
+      "uint256",
+      "uint256",
+    ],
     [
       swap.initiatorERCContract,
       swap.acceptorERCContract,

@@ -41,8 +41,6 @@ contract TokenSwapper is ISwapTokens {
    * @param _swap The full swap details.
    */
   function initiateSwap(Swap memory _swap) external payable {
-    // 1. initiator token address is empty meaning there must be a value
-
     getTokenTypeValidator(_swap.initiatorTokenType)(
       _swap.initiatorERCContract,
       _swap.initiatorETHPortion,
@@ -96,7 +94,7 @@ contract TokenSwapper is ISwapTokens {
 
   function getTokenTypeValidator(
     TokenType _tokenType
-  ) internal returns (function(address, uint256, uint256, uint256) internal pure) {
+  ) internal pure returns (function(address, uint256, uint256, uint256) internal pure) {
     if (_tokenType == TokenType.ERC721) {
       return validateERC721SwapParameters;
     }
@@ -109,9 +107,7 @@ contract TokenSwapper is ISwapTokens {
       return validateERC721SwapParameters;
     }
 
-    if (_tokenType == TokenType.NONE) {
-      return validateNoTokenTypeSwapParameters;
-    }
+    return validateNoTokenTypeSwapParameters;
   }
 
   function validateNoTokenTypeSwapParameters(address, uint256 _ethPortion, uint256, uint256) internal pure {
@@ -205,25 +201,21 @@ contract TokenSwapper is ISwapTokens {
 
     Utils.storeTransientSwap(SWAP_TRANSIENT_KEY, _swap);
 
-    if (_swap.initiatorTokenType != TokenType.NONE) {
-      getTokenTransfer(_swap.initiatorTokenType)(
-        _swap.initiatorERCContract,
-        _swap.initiatorTokenId,
-        _swap.initiatorTokenQuantity,
-        _swap.initiator,
-        _swap.acceptor
-      );
-    }
+    getTokenTransfer(_swap.initiatorTokenType)(
+      _swap.initiatorERCContract,
+      _swap.initiatorTokenId,
+      _swap.initiatorTokenQuantity,
+      _swap.initiator,
+      _swap.acceptor
+    );
 
-    if (_swap.acceptorTokenType != TokenType.NONE) {
-      getTokenTransfer(_swap.acceptorTokenType)(
-        _swap.acceptorERCContract,
-        _swap.acceptorTokenId,
-        _swap.acceptorTokenQuantity,
-        _swap.acceptor,
-        _swap.initiator
-      );
-    }
+    getTokenTransfer(_swap.acceptorTokenType)(
+      _swap.acceptorERCContract,
+      _swap.acceptorTokenId,
+      _swap.acceptorTokenQuantity,
+      _swap.acceptor,
+      _swap.initiator
+    );
 
     Utils.wipeTransientSwap(SWAP_TRANSIENT_KEY);
   }
@@ -292,24 +284,25 @@ contract TokenSwapper is ISwapTokens {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    if (_swap.initiatorTokenType != TokenType.NONE) {
-      (bool initiatorNeedsToOwnToken, bool initiatorTokenRequiresApproval) = getTokenSwapStatus(
-        _swap.initiatorTokenType
-      )(_swap.initiatorERCContract, _swap.initiatorTokenId, _swap.initiatorTokenQuantity, _swap.initiator);
-      swapStatus.initiatorNeedsToOwnToken = initiatorNeedsToOwnToken;
-      swapStatus.initiatorTokenRequiresApproval = initiatorTokenRequiresApproval;
-    }
-    if (_swap.acceptorTokenType != TokenType.NONE) {
-      (bool acceptorNeedsToOwnToken, bool acceptorTokenRequiresApproval) = getTokenSwapStatus(_swap.acceptorTokenType)(
-        _swap.acceptorERCContract,
-        _swap.acceptorTokenId,
-        _swap.acceptorTokenQuantity,
-        _swap.acceptor
-      );
+    (bool initiatorNeedsToOwnToken, bool initiatorTokenRequiresApproval) = getTokenSwapStatus(_swap.initiatorTokenType)(
+      _swap.initiatorERCContract,
+      _swap.initiatorTokenId,
+      _swap.initiatorTokenQuantity,
+      _swap.initiator
+    );
 
-      swapStatus.acceptorNeedsToOwnToken = acceptorNeedsToOwnToken;
-      swapStatus.acceptorTokenRequiresApproval = acceptorTokenRequiresApproval;
-    }
+    swapStatus.initiatorNeedsToOwnToken = initiatorNeedsToOwnToken;
+    swapStatus.initiatorTokenRequiresApproval = initiatorTokenRequiresApproval;
+
+    (bool acceptorNeedsToOwnToken, bool acceptorTokenRequiresApproval) = getTokenSwapStatus(_swap.acceptorTokenType)(
+      _swap.acceptorERCContract,
+      _swap.acceptorTokenId,
+      _swap.acceptorTokenQuantity,
+      _swap.acceptor
+    );
+
+    swapStatus.acceptorNeedsToOwnToken = acceptorNeedsToOwnToken;
+    swapStatus.acceptorTokenRequiresApproval = acceptorTokenRequiresApproval;
 
     swapStatus.isReadyForSwapping =
       !(swapStatus.initiatorNeedsToOwnToken) &&
@@ -344,6 +337,8 @@ contract TokenSwapper is ISwapTokens {
     if (_tokenType == TokenType.ERC1155) {
       return erc1155Status;
     }
+
+    return noneStatus;
   }
 
   /**
@@ -363,7 +358,11 @@ contract TokenSwapper is ISwapTokens {
     if (_tokenType == TokenType.ERC1155) {
       return erc1155Transferer;
     }
+
+    return noneTransferer;
   }
+
+  function noneTransferer(address, uint256, uint256, address, address) internal pure {}
 
   /**
    * @notice Retrieves the function to transfer a swap's token based on token type.
@@ -400,6 +399,13 @@ contract TokenSwapper is ISwapTokens {
     IERC1155(_tokenAddress).safeTransferFrom(_tokenOwner, _recipient, _tokenId, _tokenQuantity, "0x");
   }
 
+  function noneStatus(
+    address,
+    uint256,
+    uint256,
+    address
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {}
+
   //todo NatSpec
   function erc20Status(
     address _tokenAddress,
@@ -435,7 +441,7 @@ contract TokenSwapper is ISwapTokens {
   ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {
     IERC1155 erc1155Token = IERC1155(_tokenAddress);
 
-    needsToOwnToken = erc1155Token.balanceOf(_tokenOwner, _tokenId) == 0;
+    needsToOwnToken = erc1155Token.balanceOf(_tokenOwner, _tokenId) < _tokenQuantity;
     tokenRequiresApproval = !erc1155Token.isApprovedForAll(_tokenOwner, address(this));
   }
 }

@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { ISwapTokens, ReentryTester, TokenSwapper, MyToken } from "../typechain-types";
 
-describe("tokenSwapper", function () {
+describe("tokenSwapper 721 testing", function () {
   const GENERIC_SWAP_ETH = ethers.parseEther("1");
 
   let tokenSwapper: TokenSwapper;
@@ -314,6 +314,26 @@ describe("tokenSwapper", function () {
       expect(swapStatus.initiatorTokenRequiresApproval).true;
       expect(swapStatus.acceptorTokenRequiresApproval).true;
       expect(swapStatus.isReadyForSwapping).false;
+    });
+
+    it("Returns all false for ownership and approvals when one side is ETH", async function () {
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorERCContract = ethers.ZeroAddress;
+      defaultSwap.acceptorTokenId = 0n;
+      defaultSwap.acceptorTokenQuantity = 0n;
+      defaultSwap.acceptorTokenType = 0n;
+
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1);
+
+      const swapStatus: ISwapTokens.SwapStatusStruct = await tokenSwapper.getSwapStatus(1n, defaultSwap);
+
+      expect(swapStatus.initiatorNeedsToOwnToken).false;
+      expect(swapStatus.acceptorNeedsToOwnToken).false;
+      expect(swapStatus.initiatorTokenRequiresApproval).false;
+      expect(swapStatus.acceptorTokenRequiresApproval).false;
+      expect(swapStatus.isReadyForSwapping).true;
     });
   });
 
@@ -716,10 +736,10 @@ export function getDefaultSwap(
     acceptorERCContract: acceptorERCContract,
     initiator: swapper1Address,
     initiatorTokenId: 1n,
-    initiatorTokenQuantity:0n,
+    initiatorTokenQuantity: 0n,
     acceptor: swapper2Address,
     acceptorTokenId: 2n,
-    acceptorTokenQuantity:0n,
+    acceptorTokenQuantity: 0n,
     initiatorETHPortion: 0n,
     acceptorETHPortion: 0n,
     initiatorTokenType: 3n,
@@ -735,7 +755,7 @@ export type ErcSwap = {
   initiatorTokenQuantity: bigint;
   acceptor: string;
   acceptorTokenId: bigint;
-  acceptorTokenQuantity:bigint;
+  acceptorTokenQuantity: bigint;
   initiatorETHPortion: bigint;
   acceptorETHPortion: bigint;
   initiatorTokenType: bigint;
@@ -755,7 +775,20 @@ export const encodeData = (paramTypes: string[], paramValues: unknown[], encodeP
 
 export function keccakSwap(swap: ISwapTokens.SwapStruct) {
   return abiEncodeAndKeccak256(
-    ["address", "address", "address", "uint256","uint256", "address", "uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+    [
+      "address",
+      "address",
+      "address",
+      "uint256",
+      "uint256",
+      "address",
+      "uint256",
+      "uint256",
+      "uint256",
+      "uint256",
+      "uint256",
+      "uint256",
+    ],
     [
       swap.initiatorERCContract,
       swap.acceptorERCContract,
