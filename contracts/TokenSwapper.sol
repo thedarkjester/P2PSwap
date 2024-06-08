@@ -142,10 +142,6 @@ contract TokenSwapper is ISwapTokens {
     uint256 _tokenQuantity
   ) internal pure {
     // validate address exists
-    // validate tokenId > 0
-    // validate _tokenQuantity > 0
-
-    // validate address exists
     if (_ercContract == ZERO_ADDRESS) {
       revert ZeroAddressSetForValidTokenType();
     }
