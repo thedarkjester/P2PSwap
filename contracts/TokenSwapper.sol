@@ -41,32 +41,6 @@ contract TokenSwapper is ISwapTokens {
    * @param _swap The full swap details.
    */
   function initiateSwap(Swap memory _swap) external payable {
-    getTokenTypeValidator(_swap.initiatorTokenType)(
-      _swap.initiatorERCContract,
-      _swap.initiatorETHPortion,
-      _swap.initiatorTokenId,
-      _swap.initiatorTokenQuantity
-    );
-
-    if (_swap.initiatorTokenType == TokenType.NONE) {
-      _swap.initiatorTokenId = 0;
-      _swap.initiatorERCContract = ZERO_ADDRESS;
-      _swap.initiatorTokenQuantity = 0;
-    }
-
-    if (_swap.acceptorTokenType != TokenType.NONE) {
-      getTokenTypeValidator(_swap.acceptorTokenType)(
-        _swap.acceptorERCContract,
-        _swap.acceptorETHPortion,
-        _swap.acceptorTokenId,
-        _swap.acceptorTokenQuantity
-      );
-    } else {
-      _swap.acceptorTokenId = 0;
-      _swap.acceptorERCContract = ZERO_ADDRESS;
-      _swap.acceptorTokenQuantity = 0;
-    }
-
     if (_swap.acceptor == ZERO_ADDRESS) {
       revert ZeroAddressDisallowed();
     }
@@ -81,6 +55,32 @@ contract TokenSwapper is ISwapTokens {
 
     if (msg.value > 0 && _swap.acceptorETHPortion > 0) {
       revert TwoWayEthPortionsDisallowed();
+    }
+
+    getTokenTypeValidator(_swap.initiatorTokenType)(
+      _swap.initiatorERCContract,
+      _swap.initiatorETHPortion,
+      _swap.initiatorTokenId,
+      _swap.initiatorTokenQuantity
+    );
+
+    if (_swap.initiatorTokenType == TokenType.NONE) {
+      _swap.initiatorTokenId = 0;
+      _swap.initiatorERCContract = ZERO_ADDRESS;
+      _swap.initiatorTokenQuantity = 0;
+    }
+
+    getTokenTypeValidator(_swap.acceptorTokenType)(
+      _swap.acceptorERCContract,
+      _swap.acceptorETHPortion,
+      _swap.acceptorTokenId,
+      _swap.acceptorTokenQuantity
+    );
+
+    if (_swap.acceptorTokenType == TokenType.NONE) {
+      _swap.acceptorTokenId = 0;
+      _swap.acceptorERCContract = ZERO_ADDRESS;
+      _swap.acceptorTokenQuantity = 0;
     }
 
     unchecked {
@@ -104,16 +104,10 @@ contract TokenSwapper is ISwapTokens {
     }
 
     if (_tokenType == TokenType.ERC1155) {
-      return validateERC721SwapParameters;
+      return validateERC1155SwapParameters;
     }
 
     return validateNoTokenTypeSwapParameters;
-  }
-
-  function validateNoTokenTypeSwapParameters(address, uint256 _ethPortion, uint256, uint256) internal pure {
-    if (_ethPortion == 0) {
-      revert ValueOrTokenMissing();
-    }
   }
 
   function validateERC20SwapParameters(
@@ -122,6 +116,9 @@ contract TokenSwapper is ISwapTokens {
     uint256,
     uint256 _tokenQuantity
   ) internal pure {
+    // validate address exists
+    // validate quantity > 0
+
     if (_ercContract == ZERO_ADDRESS) {
       if (_ethPortion == 0) {
         revert ValueOrTokenMissing();
@@ -142,6 +139,9 @@ contract TokenSwapper is ISwapTokens {
     uint256 _tokenId,
     uint256
   ) internal pure {
+    // validate address exists
+    // validate tokenId > 0
+
     if (_ercContract == ZERO_ADDRESS) {
       if (_ethPortion == 0) {
         revert ValueOrTokenMissing();
@@ -155,6 +155,37 @@ contract TokenSwapper is ISwapTokens {
       }
     }
   }
+
+  function validateERC1155SwapParameters(
+    address _ercContract,
+    uint256 _ethPortion,
+    uint256 _tokenId,
+    uint256 _tokenQuantity
+  ) internal pure {
+    // validate address exists
+    // validate tokenId > 0
+    // validate _tokenQuantity > 0
+
+    if (_ercContract == ZERO_ADDRESS) {
+      if (_ethPortion == 0) {
+        revert ValueOrTokenMissing();
+      }
+      if (_tokenId != 0) {
+        revert TokenIdSetForZeroAddress();
+      }
+    } else {
+      if (_tokenId == 0 || _tokenQuantity == 0) {
+        revert ValueOrTokenMissing();
+      }
+    }
+  }
+
+  function validateNoTokenTypeSwapParameters(address, uint256 _ethPortion, uint256, uint256) internal pure {
+    if (_ethPortion == 0) {
+      revert ValueOrTokenMissing();
+    }
+  }
+
   /**
    * @notice Completes the swap.
    * @dev If ETH is sent, it is used as the acceptor ETH portion.
@@ -362,8 +393,6 @@ contract TokenSwapper is ISwapTokens {
     return noneTransferer;
   }
 
-  function noneTransferer(address, uint256, uint256, address, address) internal pure {}
-
   /**
    * @notice Retrieves the function to transfer a swap's token based on token type.
    */
@@ -399,14 +428,8 @@ contract TokenSwapper is ISwapTokens {
     IERC1155(_tokenAddress).safeTransferFrom(_tokenOwner, _recipient, _tokenId, _tokenQuantity, "0x");
   }
 
-  function noneStatus(
-    address,
-    uint256,
-    uint256,
-    address
-  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {}
+  function noneTransferer(address, uint256, uint256, address, address) internal pure {}
 
-  //todo NatSpec
   function erc20Status(
     address _tokenAddress,
     uint256,
@@ -419,7 +442,6 @@ contract TokenSwapper is ISwapTokens {
     tokenRequiresApproval = erc20Token.allowance(_tokenOwner, address(this)) < _tokenQuantity;
   }
 
-  //todo NatSpec
   function erc721Status(
     address _tokenAddress,
     uint256 _tokenId,
@@ -432,7 +454,6 @@ contract TokenSwapper is ISwapTokens {
     tokenRequiresApproval = erc721Token.getApproved(_tokenId) != address(this);
   }
 
-  //todo NatSpec
   function erc1155Status(
     address _tokenAddress,
     uint256 _tokenId,
@@ -444,6 +465,13 @@ contract TokenSwapper is ISwapTokens {
     needsToOwnToken = erc1155Token.balanceOf(_tokenOwner, _tokenId) < _tokenQuantity;
     tokenRequiresApproval = !erc1155Token.isApprovedForAll(_tokenOwner, address(this));
   }
+
+  function noneStatus(
+    address,
+    uint256,
+    uint256,
+    address
+  ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {}
 }
 
 /*   
