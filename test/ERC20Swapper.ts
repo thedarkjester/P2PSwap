@@ -24,6 +24,8 @@ describe("erc20Swapper", function () {
   let swapper1Address: string;
   let swapper2: SignerWithAddress;
   let swapper2Address: string;
+  let deniedAccount: SignerWithAddress;
+  let deniedAddress: string;
 
   let defaultSwap: Erc20Swap;
 
@@ -41,9 +43,8 @@ describe("erc20Swapper", function () {
     const erc20AFactory = await ethers.getContractFactory("ERC20A");
     erc20A = await erc20AFactory.deploy();
     erc20AAddress = await erc20A.getAddress();
-
     const erc20BFactory = await ethers.getContractFactory("ERC20B");
-    erc20B = await erc20BFactory.deploy();
+    erc20B = await erc20BFactory.deploy(deniedAddress);
     erc20BAddress = await erc20B.getAddress();
   }
 
@@ -61,9 +62,10 @@ describe("erc20Swapper", function () {
   }
 
   before(async () => {
-    [owner, swapper1, swapper2] = await ethers.getSigners();
+    [owner, swapper1, swapper2, deniedAccount] = await ethers.getSigners();
     swapper1Address = swapper1.address;
     swapper2Address = swapper2.address;
+    deniedAddress = deniedAccount.address;
   });
 
   this.beforeEach(async () => {

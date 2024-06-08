@@ -153,6 +153,11 @@ interface ISwapTokens {
   error ETHSendingFailed();
 
   /**
+   * @dev Thrown when reentrancy.
+   */
+  error NoReentry();
+
+  /**
    * @dev Thrown when the token transfer failed.
    */
   error TokenTransferFailed(address tokenAddress, uint256);

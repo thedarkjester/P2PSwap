@@ -24,6 +24,8 @@ describe("tokenSwapper erc20 testing", function () {
   let swapper1Address: string;
   let swapper2: SignerWithAddress;
   let swapper2Address: string;
+  let denyListedAccount: SignerWithAddress;
+  let denyListedAddress: string;
 
   let defaultSwap: ISwapTokens.SwapStruct;
 
@@ -39,7 +41,7 @@ describe("tokenSwapper erc20 testing", function () {
     erc20AAddress = await erc20A.getAddress();
 
     const erc20BFactory = await ethers.getContractFactory("ERC20B");
-    erc20B = await erc20BFactory.deploy();
+    erc20B = await erc20BFactory.deploy(denyListedAddress);
     erc20BAddress = await erc20B.getAddress();
   }
 
@@ -60,9 +62,10 @@ describe("tokenSwapper erc20 testing", function () {
   }
 
   before(async () => {
-    [owner, swapper1, swapper2] = await ethers.getSigners();
+    [owner, swapper1, swapper2, denyListedAccount] = await ethers.getSigners();
     swapper1Address = swapper1.address;
     swapper2Address = swapper2.address;
+    denyListedAddress = denyListedAccount.address;
   });
 
   this.beforeEach(async () => {
@@ -742,6 +745,25 @@ describe("tokenSwapper erc20 testing", function () {
 
       expect(swapper1Balance).equal(GENERIC_SWAP_ETH);
       expect(swapper2Balance).equal(0);
+    });
+
+    it("reverts if fails to send", async function () {
+      defaultSwap.initiator = swapper2Address;
+      defaultSwap.initiatorERCContract = erc20BAddress;
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptor = denyListedAddress;
+      defaultSwap.acceptorERCContract = ethers.ZeroAddress;
+      defaultSwap.acceptorTokenId = 0;
+      defaultSwap.acceptorTokenQuantity = 0;
+      defaultSwap.acceptorTokenType = 0;
+
+      await tokenSwapper.connect(swapper2).initiateSwap(defaultSwap);
+
+      await erc20B.connect(swapper2).approve(tokenSwapperAddress, 500n);
+
+      await expect(tokenSwapper.connect(denyListedAccount).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH }))
+        .to.be.revertedWithCustomError(tokenSwapper, "TokenTransferFailed")
+        .withArgs(erc20BAddress, 500n);
     });
   });
 });

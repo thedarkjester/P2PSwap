@@ -17,6 +17,8 @@ contract TokenSwapper is ISwapTokens {
   bytes32 private constant SAME_CONTRACT_SWAP_TRANSIENT_KEY =
     bytes32(uint256(keccak256("eip1967.same.contract.swap.transient.key")) - 1);
 
+  bytes32 private constant REENTRY_TRANSIENT_KEY = bytes32(uint256(keccak256("eip1967.reentry.transient.key")) - 1);
+
   using Utils for *;
 
   address private constant ZERO_ADDRESS = address(0);
@@ -171,7 +173,7 @@ contract TokenSwapper is ISwapTokens {
    * @param _swapId The ID of the swap.
    * @param _swap The swap data to use and verify.
    */
-  function completeSwap(uint256 _swapId, Swap memory _swap) external payable {
+  function completeSwap(uint256 _swapId, Swap memory _swap) external payable nonReentrant {
     if (swapHashes[_swapId] != Utils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
@@ -234,7 +236,7 @@ contract TokenSwapper is ISwapTokens {
    * @dev The Initiator ETH portion is added to the initiator balance if exists.
    * @param _swapId The ID of the swap.
    */
-  function removeSwap(uint256 _swapId, Swap memory _swap) external {
+  function removeSwap(uint256 _swapId, Swap memory _swap) external nonReentrant {
     if (swapHashes[_swapId] != Utils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
@@ -445,6 +447,16 @@ contract TokenSwapper is ISwapTokens {
     uint256,
     address
   ) internal view returns (bool needsToOwnToken, bool tokenRequiresApproval) {}
+
+  modifier nonReentrant() {
+    if (Utils.loadTransientBool(REENTRY_TRANSIENT_KEY)) {
+      revert NoReentry();
+    }
+
+    Utils.storeTransientBool(REENTRY_TRANSIENT_KEY, true);
+    _;
+    Utils.wipeTransientBool(REENTRY_TRANSIENT_KEY);
+  }
 }
 
 /*   

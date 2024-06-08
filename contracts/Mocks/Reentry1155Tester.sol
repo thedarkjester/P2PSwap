@@ -4,6 +4,8 @@ import { ISwapTokens } from "../ISwapTokens.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
+import "hardhat/console.sol";
+
 contract Reentry1155Tester is IERC1155Receiver {
   address private swapperAddress;
   address private target;
@@ -17,6 +19,8 @@ contract Reentry1155Tester is IERC1155Receiver {
     uint256 _acceptorTokenId,
     address _swapperAddress
   ) external payable {
+    target = _acceptor;
+
     ISwapTokens swapper = ISwapTokens(_swapperAddress);
 
     ISwapTokens.Swap memory swap = ISwapTokens.Swap({
@@ -34,6 +38,8 @@ contract Reentry1155Tester is IERC1155Receiver {
       acceptorTokenType: ISwapTokens.TokenType.ERC1155
     });
 
+    swapperAddress = _swapperAddress;
+
     swapper.initiateSwap{ value: msg.value }(swap);
   }
 
@@ -43,7 +49,7 @@ contract Reentry1155Tester is IERC1155Receiver {
         initiatorERCContract: msg.sender,
         acceptorERCContract: msg.sender,
         initiator: target,
-        initiatorTokenId: 1,
+        initiatorTokenId: id,
         initiatorTokenQuantity: 1,
         acceptor: address(this),
         acceptorTokenId: 4,
@@ -54,9 +60,8 @@ contract Reentry1155Tester is IERC1155Receiver {
         acceptorTokenType: ISwapTokens.TokenType.ERC1155
       });
 
-      swap.initiator = target;
       ISwapTokens swapper = ISwapTokens(swapperAddress);
-      swapperAddress = swapperAddress;
+
       swapper.completeSwap(1, swap);
     }
 
@@ -65,12 +70,12 @@ contract Reentry1155Tester is IERC1155Receiver {
         initiatorERCContract: msg.sender,
         acceptorERCContract: msg.sender,
         initiator: address(this),
-        initiatorTokenId: 1,
+        initiatorTokenId: 4,
         initiatorTokenQuantity: 1,
         acceptor: target,
         acceptorTokenId: 2,
         acceptorTokenQuantity: 1,
-        initiatorETHPortion: 1 ether,
+        initiatorETHPortion: 0,
         acceptorETHPortion: 0,
         initiatorTokenType: ISwapTokens.TokenType.ERC1155,
         acceptorTokenType: ISwapTokens.TokenType.ERC1155
@@ -78,8 +83,7 @@ contract Reentry1155Tester is IERC1155Receiver {
 
       ISwapTokens swapperRemover = ISwapTokens(swapperAddress);
 
-      swapperAddress = swapperAddress;
-      swapperRemover.removeSwap(2, swap);
+      swapperRemover.removeSwap(1, swap);
     }
 
     return IERC1155Receiver.onERC1155Received.selector;
@@ -104,7 +108,7 @@ contract Reentry1155Tester is IERC1155Receiver {
     swapper.withdraw();
   }
 
-  function approveToken(uint256 _tokenId, address _nftContractAddress, address _swapperAddress) external {
+  function approveToken(address _nftContractAddress, address _swapperAddress) external {
     IERC1155 nftContract = IERC1155(_nftContractAddress);
     nftContract.setApprovalForAll(_swapperAddress, true);
   }
@@ -113,6 +117,7 @@ contract Reentry1155Tester is IERC1155Receiver {
     target = _swap.acceptor;
     ISwapTokens swapper = ISwapTokens(_swapperAddress);
     swapper.removeSwap(_swapId, _swap);
+    swapper.removeSwap(_swapId, _swap);
   }
 
   function completeSwap(uint256 _swapId, address _swapperAddress, ISwapTokens.Swap calldata _swap) public {
@@ -120,6 +125,7 @@ contract Reentry1155Tester is IERC1155Receiver {
 
     ISwapTokens swapper = ISwapTokens(_swapperAddress);
     swapperAddress = _swapperAddress;
+
     swapper.completeSwap(_swapId, _swap);
   }
 

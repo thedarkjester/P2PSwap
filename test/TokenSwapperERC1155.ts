@@ -449,6 +449,58 @@ describe("tokenSwapper 1155 testing", function () {
   });
 
   describe("Swap completion", function () {
+    it("Fails if removeSwap called again", async function () {
+      defaultSwap.initiatorETHPortion = ethers.parseEther("1");
+      defaultSwap.initiator = reentryTesterAddress;
+      await reentryTester.initiateSwap(myTokenAddress, myTokenAddress, swapper2, 0n, 1n, 2n, tokenSwapper, {
+        value: ethers.parseEther("1"),
+      });
+
+      await expect(reentryTester.removeSwap(1, tokenSwapperAddress, defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "SwapCompleteOrDoesNotExist",
+      );
+    });
+
+    it("Fails reentry if completeSwap called again", async function () {
+      defaultSwap.acceptor = reentryTesterAddress;
+      defaultSwap.acceptorTokenId = 4n;
+
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
+      await reentryTester.approveToken(myTokenAddress, tokenSwapperAddress);
+
+      await expect(reentryTester.completeSwap(1, tokenSwapperAddress, defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "NoReentry",
+      );
+    });
+
+    it("Fails reentry if calling removeswap while swapping", async function () {
+      defaultSwap.initiator = reentryTesterAddress;
+      defaultSwap.initiatorTokenId = 4n;
+      defaultSwap.acceptor = swapper2Address;
+
+      await reentryTester.initiateSwap(
+        myTokenAddress,
+        myTokenAddress,
+        swapper2Address,
+        0n,
+        4n,
+        2n,
+        tokenSwapperAddress,
+      );
+
+      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await reentryTester.approveToken(myTokenAddress, tokenSwapperAddress);
+
+      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "NoReentry",
+      );
+    });
+
     it("Fails when does not exist", async function () {
       await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
