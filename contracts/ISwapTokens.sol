@@ -10,8 +10,8 @@ pragma solidity 0.8.26;
 interface ISwapTokens {
   enum TokenType {
     NONE,
-    ERC20,
-    ERC777, // erc20 really
+    ERC20, // xERC20, ERC777 really as well
+    ERC777, 
     ERC721,
     ERC1155
   }

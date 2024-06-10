@@ -60,6 +60,10 @@ contract TokenSwapper is ISwapTokens {
       revert TwoWayEthPortionsDisallowed();
     }
 
+    if (_swap.initiatorTokenType == TokenType.NONE && _swap.acceptorTokenType == TokenType.NONE) {
+      revert TwoWayEthPortionsDisallowed();
+    }
+
     getTokenTypeValidator(_swap.initiatorTokenType)(
       _swap.initiatorERCContract,
       _swap.initiatorETHPortion,
