@@ -10,8 +10,8 @@ pragma solidity 0.8.26;
 interface ISwapTokens {
   enum TokenType {
     NONE,
-    ERC20,
-    ERC777, // erc20 really
+    ERC20, // xERC20, ERC777 really as well
+    ERC777,
     ERC721,
     ERC1155
   }
@@ -53,8 +53,10 @@ interface ISwapTokens {
    * @dev acceptorERCContract is the contract address for the acceptors's NFT (may be same as initiator's).
    * @dev initiator is the address for the account initiating the swap.
    * @dev initiatorTokenId is the NFT Id for the initiator's token.
+   * @dev initiatorTokenQuantity is the quantity of the initiator's token.
    * @dev acceptor is the address for the account accepting the swap.
    * @dev acceptorTokenId is the NFT Id for the acceptor's token.
+   * @dev acceptorTokenQuantity is the quantity of the acceptor's token.
    * @dev initiatorETHPortion is the ETH sweetener offered by the intiator.
    * @dev acceptorETHPortion is the ETH sweetener to be provided by the acceptor.
    * @dev initiatorTokenType The type of token used to determine swap mechanics.

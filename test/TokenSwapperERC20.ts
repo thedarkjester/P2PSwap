@@ -203,6 +203,29 @@ describe("tokenSwapper erc20 testing", function () {
       );
     });
 
+    it("Initiates with both types as none", async function () {
+      defaultSwap.initiatorERCContract = ethers.ZeroAddress;
+      defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.initiatorTokenQuantity = 0;
+      defaultSwap.initiatorTokenType = 0;
+
+      defaultSwap.acceptorERCContract = ethers.ZeroAddress;
+      defaultSwap.acceptorETHPortion = 0;
+      defaultSwap.acceptorTokenQuantity = 0;
+      defaultSwap.acceptorTokenType = 0;
+
+      await expect(
+        tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
+          value: GENERIC_SWAP_ETH,
+        }),
+      ).to.be.revertedWithCustomError(tokenSwapper, "TwoWayEthPortionsDisallowed");
+    });
+
+    it("Fails when token type unknown", async function () {
+      defaultSwap.acceptorTokenType = 5;
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.reverted;
+    });
+
     it("Initiates with empty initiator contract address and ETH value set", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
