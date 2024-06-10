@@ -207,7 +207,7 @@ describe("tokenSwapper 1155 testing", function () {
         "TokenQuantityMissing",
       );
     });
-   
+
     it("Initiates with both types as none", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
@@ -219,11 +219,13 @@ describe("tokenSwapper 1155 testing", function () {
       defaultSwap.acceptorTokenQuantity = 0;
       defaultSwap.acceptorTokenType = 0;
 
-      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
-        value: GENERIC_SWAP_ETH,
-      })).to.be.revertedWithCustomError(tokenSwapper, "TwoWayEthPortionsDisallowed");
+      await expect(
+        tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
+          value: GENERIC_SWAP_ETH,
+        }),
+      ).to.be.revertedWithCustomError(tokenSwapper, "TwoWayEthPortionsDisallowed");
     });
-    
+
     it("Fails when token type unknown", async function () {
       defaultSwap.acceptorTokenType = 5;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.reverted;

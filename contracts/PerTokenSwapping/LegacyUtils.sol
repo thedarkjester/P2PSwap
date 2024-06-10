@@ -54,7 +54,7 @@ library LegacyUtils {
     }
   }
 
-    /**
+  /**
    * @notice Gas efficient swap hashing using inline assembly.
    * @dev There are 12 items in the struct, each using 32 bytes in calldata when used,
    * so to hash it we use 0x180 (320), or 12*32 (360) bytes.

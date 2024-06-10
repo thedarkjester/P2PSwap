@@ -194,11 +194,13 @@ describe("tokenSwapper 721 testing", function () {
       defaultSwap.acceptorTokenQuantity = 0;
       defaultSwap.acceptorTokenType = 0;
 
-      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
-        value: GENERIC_SWAP_ETH,
-      })).to.be.revertedWithCustomError(tokenSwapper, "TwoWayEthPortionsDisallowed");
+      await expect(
+        tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
+          value: GENERIC_SWAP_ETH,
+        }),
+      ).to.be.revertedWithCustomError(tokenSwapper, "TwoWayEthPortionsDisallowed");
     });
-    
+
     it("Fails when token type unknown", async function () {
       defaultSwap.acceptorTokenType = 5;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.reverted;
