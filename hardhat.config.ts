@@ -1,5 +1,8 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 const config: HardhatUserConfig = {
   paths: {
@@ -17,7 +20,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          //viaIR: true,
+          viaIR: true,
           evmVersion: "cancun",
         },
       },
@@ -33,6 +36,14 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+  },
+  networks: {
+    hardhat: {
+      hardfork: "cancun",
+    },
+    localNode: {
+      url: "http://127.0.0.1:8545",
+    },
   },
 };
 

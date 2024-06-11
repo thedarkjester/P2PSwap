@@ -1,11 +1,11 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const swapper = await ethers.deployContract("ERC721Swapper");
+  const swapper = await ethers.deployContract("TokenSwapper");
 
   await swapper.waitForDeployment();
 
-  console.log(`ERC721Swapper contract Deployed at address ${await swapper.getAddress()}`);
+  console.log(`TokenSwapper contract Deployed at address ${await swapper.getAddress()}`);
 }
 
 main().catch((error) => {
