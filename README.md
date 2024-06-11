@@ -79,7 +79,7 @@ At this point it is important to note that the Swapper contract immediately lose
   - This is found at: 
     - Mainnet [Verified contract on Etherscan](https://etherscan.io/address/0xeb85ef5be169362473eb535c60bc2a1dcfba1bc8#code)
     - Sepolia [Verified contract on Etherscan](https://sepolia.etherscan.io/address/0x1e29f6aeb2371728b83bf06caa1c5d8b5307411e#code)
-    - See previous [Readme](ERC20VariantSwapper.md) 
+    - See previous [Readme](ERC721Swapper.md) 
 - Can I use this code/deploy it on other chains?
   - Of course, by all means go for it. Please keep attribution and pay attention to note 1 below.
 
