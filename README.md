@@ -8,6 +8,7 @@ Sepolia:
 
 Mainnet:
 - https://etherscan.io/address/0x26e36499b482cb2c738979eacf7b86bf00a301c3#code
+- This is registered at: `otc-token-swap.eth` and `swap-token-otc.eth`
 
 ## Ok, so what is this Token Swapper thing? 
 
