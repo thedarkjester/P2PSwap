@@ -44,6 +44,18 @@ const config: HardhatUserConfig = {
     localNode: {
       url: "http://127.0.0.1:8545",
     },
+    mainnet: {
+      url: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
+    },
+    sepolia: {
+      url: "https://sepolia.infura.io/v3/" + process.env.INFURA_API_KEY,
+    },
+  },
+  etherscan: {
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY ?? "",
+      sepolia: process.env.ETHERSCAN_API_KEY ?? "",
+    },
   },
 };
 
