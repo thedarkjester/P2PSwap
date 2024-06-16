@@ -2,9 +2,9 @@
 pragma solidity 0.8.26;
 
 /**
- * @title A simple NFT swapper contract with no fee takers.
+ * @title A simple Token swapper contract with no fee takers.
  * @author The Dark Jester
- * @notice You can use this contract for ERC721 swaps where one party can set up a deal and the other accept.
+ * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
 interface ISwapTokens {
