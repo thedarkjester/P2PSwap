@@ -2,8 +2,12 @@
 
 ## Where is the official deploy at?
 
-Verified contract on Etherscan - once it has been reviewed by others it will be deployed.
-Sepolia and then Mainnet.
+Verified contracts on Etherscan - 
+Sepolia:
+- https://sepolia.etherscan.io/address/0xea929e6916c6be1f649f9f0c6e7b8b0a5999414f#code
+
+Mainnet:
+- https://etherscan.io/address/0x26e36499b482cb2c738979eacf7b86bf00a301c3#code
 
 ## Ok, so what is this Token Swapper thing? 
 
