@@ -174,8 +174,8 @@ contract TokenSwapper is ISwapTokens {
    * @dev The Initiator ETH portion is added to the initiator balance if exists.
    * @param _swapId The ID of the swap.
    */
-  function removeSwap(uint256 _swapId, Swap memory _swap) external nonReentrant {
-    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwap(_swap)) {
+  function removeSwap(uint256 _swapId, Swap calldata _swap) external nonReentrant {
+    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwapCalldata(_swap);(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
