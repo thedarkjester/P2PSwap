@@ -175,7 +175,7 @@ contract TokenSwapper is ISwapTokens {
    * @param _swapId The ID of the swap.
    */
   function removeSwap(uint256 _swapId, Swap calldata _swap) external nonReentrant {
-    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwapCalldata(_swap);(_swap)) {
+    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwapCalldata(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
