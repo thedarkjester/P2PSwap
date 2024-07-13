@@ -160,6 +160,7 @@ describe("tokenSwapper erc20 testing", function () {
 
     it("Fails with acceptor mismatched", async function () {
       defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.acceptorTokenType = 3;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ZeroAddressDisallowed",
@@ -203,7 +204,7 @@ describe("tokenSwapper erc20 testing", function () {
       );
     });
 
-    it("Initiates with both types as none", async function () {
+    it("fails to initiate with both types as none", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       defaultSwap.initiatorTokenQuantity = 0;
@@ -235,6 +236,18 @@ describe("tokenSwapper erc20 testing", function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
         value: GENERIC_SWAP_ETH,
       });
+
+      const expectedHash = keccakSwap(defaultSwap);
+
+      expect(await tokenSwapper.swapHashes(1n)).equal(expectedHash);
+    });
+
+    it("Initiates with zero address and ERC20 token type", async function () {
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorTokenQuantity = 1000n;
+      defaultSwap.acceptorTokenType = 1;
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
       const expectedHash = keccakSwap(defaultSwap);
 
@@ -575,6 +588,19 @@ describe("tokenSwapper erc20 testing", function () {
     });
 
     it("Emits the SwapComplete event", async function () {
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await erc20A.connect(swapper1).approve(tokenSwapperAddress, 500);
+      await erc20B.connect(swapper2).approve(tokenSwapperAddress, 500);
+
+      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+        .to.emit(tokenSwapper, "SwapComplete")
+        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+    });
+
+    it("Completes a swap from anyone with empty acceptor address in configuration", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.acceptorTokenType = 1;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
       await erc20A.connect(swapper1).approve(tokenSwapperAddress, 500);
