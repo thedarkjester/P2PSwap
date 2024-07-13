@@ -149,6 +149,7 @@ describe("tokenSwapper 1155 testing", function () {
 
     it("Fails with acceptor mismatched", async function () {
       defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.acceptorTokenType = 2n;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ZeroAddressDisallowed",

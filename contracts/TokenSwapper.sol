@@ -44,7 +44,12 @@ contract TokenSwapper is ISwapTokens {
    * @param _swap The full swap details.
    */
   function initiateSwap(Swap memory _swap) external payable {
-    if (_swap.acceptor == ZERO_ADDRESS) {
+    /// @dev allow zero address for ERC20/777 tokens for anyone to pick it up
+    if (
+      _swap.acceptor == ZERO_ADDRESS &&
+      _swap.acceptorTokenType != TokenType.ERC721 &&
+      _swap.acceptorTokenType != TokenType.ERC1155
+    ) {
       revert ZeroAddressDisallowed();
     }
 
@@ -113,7 +118,7 @@ contract TokenSwapper is ISwapTokens {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    if (_swap.acceptor != msg.sender) {
+    if (_swap.acceptor != address(0) && _swap.acceptor != msg.sender) {
       revert NotAcceptor();
     }
 

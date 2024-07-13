@@ -59,7 +59,7 @@ After discussing agreed terms, `pI will set up the swap` with those terms.
 
     **`Only one side can sweeten the deal as you might expect, it would be silly otherwise`**
 
-2. pI and pI check the collection and tokenIds are correct (when there is a UI, this will be far simpler). 
+2. pI and pA check the collection and tokenIds are correct (when there is a UI, this will be far simpler). 
 3. Both pI and pA `approve` the Token Swapper contract on their respective Token Contracts (so the contract can swap them at the same time of course).
 4. pA passes the `swapId` and `swap`details` into the contract to check if the following holds true (before spending and wasting gas accepting).
 
