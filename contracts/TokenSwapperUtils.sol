@@ -17,9 +17,7 @@ library TokenSwapperUtils {
    */
   function hashTokenSwap(ISwapTokens.Swap memory _swap) internal pure returns (bytes32 swapHash) {
     assembly {
-      let mPtr := mload(0x40)
-      mcopy(mPtr, _swap, 0x180)
-      swapHash := keccak256(mPtr, 0x180)
+      swapHash := keccak256(_swap, 0x180)
     }
   }
 

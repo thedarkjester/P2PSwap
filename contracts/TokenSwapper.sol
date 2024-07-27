@@ -44,7 +44,11 @@ contract TokenSwapper is ISwapTokens {
    * @param _swap The full swap details.
    */
   function initiateSwap(Swap memory _swap) external payable {
-    if (_swap.acceptor == ZERO_ADDRESS) {
+    /// @dev allow zero address for ERC20/777 tokens for anyone to pick it up
+    if (
+      _swap.acceptor == ZERO_ADDRESS &&
+      (_swap.acceptorTokenType != TokenType.ERC20 && _swap.acceptorTokenType != TokenType.ERC777)
+    ) {
       revert ZeroAddressDisallowed();
     }
 
@@ -113,7 +117,8 @@ contract TokenSwapper is ISwapTokens {
       revert SwapCompleteOrDoesNotExist();
     }
 
-    if (_swap.acceptor != msg.sender) {
+    /// @dev allow anyone to accept if the acceptor address is empty.
+    if (_swap.acceptor != ZERO_ADDRESS && _swap.acceptor != msg.sender) {
       revert NotAcceptor();
     }
 
@@ -149,19 +154,21 @@ contract TokenSwapper is ISwapTokens {
       _swap.acceptorERCContract == _swap.initiatorERCContract
     );
 
+    address realAcceptor = _swap.acceptor == ZERO_ADDRESS ? msg.sender : _swap.acceptor;
+
     getTokenTransfer(_swap.initiatorTokenType)(
       _swap.initiatorERCContract,
       _swap.initiatorTokenId,
       _swap.initiatorTokenQuantity,
       _swap.initiator,
-      _swap.acceptor
+      realAcceptor
     );
 
     getTokenTransfer(_swap.acceptorTokenType)(
       _swap.acceptorERCContract,
       _swap.acceptorTokenId,
       _swap.acceptorTokenQuantity,
-      _swap.acceptor,
+      realAcceptor,
       _swap.initiator
     );
 
