@@ -23,6 +23,14 @@ library TokenSwapperUtils {
     }
   }
 
+  function hashTokenSwapCalldata(ISwapTokens.Swap calldata _swap) internal pure returns (bytes32 swapHash) {
+    assembly {
+      let mPtr := mload(0x40)
+      calldatacopy(mPtr, _swap, 0x180)
+      swapHash := keccak256(mPtr, 0x180)
+    }
+  }
+
   function storeTransientBool(bytes32 _key, bool _storedBool) internal {
     assembly {
       tstore(_key, _storedBool)
