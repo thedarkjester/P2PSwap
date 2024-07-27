@@ -53,7 +53,7 @@ After discussing agreed terms, `pI will set up the swap` with those terms.
    - pI's Token Type
    - pA's Token Id
    - pA's Token Quantity
-   - pA's address
+   - pA's address (Optional if not an NFT - allows anyone to accept the deal)
    - Optional: ETH to sweeten the deal
    - Optional: An ETH value that pA is expected to sweeten the deal with
 
