@@ -10,10 +10,11 @@ import { ISwapTokens } from "./ISwapTokens.sol";
 
 library TokenSwapperUtils {
   /**
-   * @notice Gas efficient swap hashing using inline assembly.
-   * @dev There are 12 items in the struct, each using 32 bytes in calldata when used,
+   * @notice Gas efficient swap hashing using inline assembly with memory.
+   * @dev There are 12 items in the struct, each using 32 bytes in memory when used,
    * so to hash it we use 0x180 (384), or 12*32 (384) bytes.
    * @param _swap The full Swap struct.
+   * @return swapHash The hash of the swap.
    */
   function hashTokenSwap(ISwapTokens.Swap memory _swap) internal pure returns (bytes32 swapHash) {
     assembly {
@@ -21,6 +22,13 @@ library TokenSwapperUtils {
     }
   }
 
+  /**
+   * @notice Gas efficient swap hashing using inline assembly with calldata.
+   * @dev There are 12 items in the struct, each using 32 bytes in calldata when used,
+   * so to hash it we use 0x180 (384), or 12*32 (384) bytes.
+   * @param _swap The full Swap struct.
+   * @return swapHash The hash of the swap.
+   */
   function hashTokenSwapCalldata(ISwapTokens.Swap calldata _swap) internal pure returns (bytes32 swapHash) {
     assembly {
       let mPtr := mload(0x40)
@@ -29,16 +37,30 @@ library TokenSwapperUtils {
     }
   }
 
+  /**
+   * @notice Stores a transient bool.
+   * @param _key The key for the storage.
+   * @param _storedBool The value to set.
+   */
   function storeTransientBool(bytes32 _key, bool _storedBool) internal {
     assembly {
       tstore(_key, _storedBool)
     }
   }
 
+  /**
+   * @notice Resets a transient bool to default.
+   * @param _key The key for the storage.
+   */
   function wipeTransientBool(bytes32 _key) internal {
     storeTransientBool(_key, false);
   }
 
+  /**
+   * @notice Loads a transient bool's value by key.
+   * @param _key The key for the storage.
+   * @return boolValue The value to return.
+   */
   function loadTransientBool(bytes32 _key) internal view returns (bool boolValue) {
     assembly {
       boolValue := tload(_key)

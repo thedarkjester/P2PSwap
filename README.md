@@ -4,10 +4,10 @@
 
 Verified contracts on Etherscan - 
 Sepolia:
-- https://sepolia.etherscan.io/address/0xea929e6916c6be1f649f9f0c6e7b8b0a5999414f#code
+- https://sepolia.etherscan.io/address/0xdCaCC46f91cFabCef537072F7f26073685d5fC31#code
 
 Mainnet:
-- https://etherscan.io/address/0x26e36499b482cb2c738979eacf7b86bf00a301c3#code
+- https://etherscan.io/address/0x91fe1560de3c6c512831d3fbecaa10f330ca5454#code
 - This is registered at: `otc-token-swap.eth` and `swap-token-otc.eth`
 
 ## Ok, so what is this Token Swapper thing? 

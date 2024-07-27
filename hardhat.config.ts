@@ -51,6 +51,9 @@ const config: HardhatUserConfig = {
       url: "https://sepolia.infura.io/v3/" + process.env.INFURA_API_KEY,
     },
   },
+  sourcify: {
+    enabled: true
+  },
   etherscan: {
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY ?? "",
