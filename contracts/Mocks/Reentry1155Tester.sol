@@ -9,8 +9,10 @@ import "hardhat/console.sol";
 contract Reentry1155Tester is IERC1155Receiver {
   address private swapperAddress;
   address private target;
+  uint256 private expiryDate;
 
   function initiateSwap(
+    uint256 _expiryDate,
     address _initiatorERCContract,
     address _acceptorERCContract,
     address _acceptor,
@@ -24,6 +26,7 @@ contract Reentry1155Tester is IERC1155Receiver {
     ISwapTokens swapper = ISwapTokens(_swapperAddress);
 
     ISwapTokens.Swap memory swap = ISwapTokens.Swap({
+      expiryDate: _expiryDate,
       initiatorERCContract: _initiatorERCContract,
       acceptorERCContract: _acceptorERCContract,
       initiator: address(this),
@@ -46,6 +49,7 @@ contract Reentry1155Tester is IERC1155Receiver {
   function onERC1155Received(address, address, uint256 id, uint256, bytes calldata) external returns (bytes4) {
     if (id == 1) {
       ISwapTokens.Swap memory swap = ISwapTokens.Swap({
+        expiryDate: expiryDate,
         initiatorERCContract: msg.sender,
         acceptorERCContract: msg.sender,
         initiator: target,
@@ -67,6 +71,7 @@ contract Reentry1155Tester is IERC1155Receiver {
 
     if (id == 2) {
       ISwapTokens.Swap memory swap = ISwapTokens.Swap({
+        expiryDate: expiryDate,
         initiatorERCContract: msg.sender,
         acceptorERCContract: msg.sender,
         initiator: address(this),
@@ -95,11 +100,11 @@ contract Reentry1155Tester is IERC1155Receiver {
     uint256[] calldata,
     uint256[] calldata,
     bytes calldata
-  ) external returns (bytes4) {
+  ) external pure returns (bytes4) {
     return IERC1155Receiver.onERC1155BatchReceived.selector;
   }
 
-  function supportsInterface(bytes4 interfaceID) external view returns (bool) {
+  function supportsInterface(bytes4 interfaceID) external pure returns (bool) {
     return interfaceID == IERC1155Receiver.onERC1155Received.selector;
   }
 

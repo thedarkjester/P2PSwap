@@ -1,4 +1,4 @@
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture, time as networkTime } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ethers } from "hardhat";
 import { AbiCoder } from "ethers";
 import { expect } from "chai";
@@ -205,6 +205,14 @@ describe("tokenSwapper 721 testing", function () {
     it("Fails when token type unknown", async function () {
       defaultSwap.acceptorTokenType = 5;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.reverted;
+    });
+
+    it("Fails when it has expiry is in the past.", async function () {
+      await networkTime.increase(86400);
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "SwapIsInThePast",
+      );
     });
 
     it("Initiates with empty initiator contract address and ETH value set", async function () {
@@ -500,6 +508,18 @@ describe("tokenSwapper 721 testing", function () {
         .withArgs(GENERIC_SWAP_ETH);
     });
 
+    it("Fails when it has expired", async function () {
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await networkTime.increase(86400);
+
+      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "SwapHasExpired",
+      );
+    });
+
     it("Resets swap to default values", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
@@ -750,6 +770,7 @@ export function getDefaultSwap(
   swapper2Address: string,
 ): ErcSwap {
   return {
+    expiryDate: BigInt(Math.floor(Date.now() / 1000)) + 86400n,
     initiatorERCContract: initiatorERCContract,
     acceptorERCContract: acceptorERCContract,
     initiator: swapper1Address,
@@ -766,6 +787,7 @@ export function getDefaultSwap(
 }
 
 export type ErcSwap = {
+  expiryDate: bigint;
   initiatorERCContract: string;
   acceptorERCContract: string;
   initiator: string;
@@ -794,6 +816,7 @@ export const encodeData = (paramTypes: string[], paramValues: unknown[], encodeP
 export function keccakSwap(swap: ISwapTokens.SwapStruct) {
   return abiEncodeAndKeccak256(
     [
+      "uint256",
       "address",
       "address",
       "address",
@@ -808,6 +831,7 @@ export function keccakSwap(swap: ISwapTokens.SwapStruct) {
       "uint256",
     ],
     [
+      swap.expiryDate,
       swap.initiatorERCContract,
       swap.acceptorERCContract,
       swap.initiator,

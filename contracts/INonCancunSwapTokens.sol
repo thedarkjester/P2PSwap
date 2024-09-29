@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.20;
 
 /**
  * @title A simple Token swapper contract with no fee takers.
@@ -7,7 +7,7 @@ pragma solidity 0.8.26;
  * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-interface ISwapTokens {
+interface INonCancunSwapTokens {
   enum TokenType {
     NONE,
     ERC20, // xERC20, ERC777 really as well
@@ -226,12 +226,6 @@ interface ISwapTokens {
    * @dev The ETH balance is sent to the msg.sender.
    */
   function withdraw() external;
-
-  /**
-   * @notice Retrieves the isSameContractSwap in transient storage.
-   * @return isSameContractSwap If tokens are swapped between two parties on the same contract.
-   */
-  function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap);
 
   /**
    * @notice Retrieves the NFT status.

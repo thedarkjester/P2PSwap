@@ -1,25 +1,20 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.20;
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import { ISwapTokens } from "./ISwapTokens.sol";
-import { TokenSwapperUtils } from "./TokenSwapperUtils.sol";
-
+import { INonCancunSwapTokens } from "./INonCancunSwapTokens.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { NonCancunTokenSwapperUtils } from "./NonCancunTokenSwapperUtils.sol";
 /**
  * @title A simple Token swapper contract with no fee takers.
  * @author The Dark Jester
  * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-contract TokenSwapper is ISwapTokens {
-  bytes32 private constant SAME_CONTRACT_SWAP_TRANSIENT_KEY =
-    bytes32(uint256(keccak256("eip1967.same.contract.swap.transient.key")) - 1);
-
-  bytes32 private constant REENTRY_TRANSIENT_KEY = bytes32(uint256(keccak256("eip1967.reentry.transient.key")) - 1);
-
-  using TokenSwapperUtils for *;
+contract NonCancunTokenSwapper is INonCancunSwapTokens, ReentrancyGuard {
+  using NonCancunTokenSwapperUtils for *;
 
   address private constant ZERO_ADDRESS = address(0);
 
@@ -105,7 +100,7 @@ contract TokenSwapper is ISwapTokens {
       // _swap emitted to pass in later when querying, completing or removing
       emit SwapInitiated(newSwapId, msg.sender, _swap.acceptor, _swap);
 
-      swapHashes[newSwapId] = TokenSwapperUtils.hashTokenSwap(_swap);
+      swapHashes[newSwapId] = NonCancunTokenSwapperUtils.hashTokenSwap(_swap);
     }
   }
 
@@ -122,7 +117,7 @@ contract TokenSwapper is ISwapTokens {
       revert SwapHasExpired();
     }
 
-    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != NonCancunTokenSwapperUtils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -158,11 +153,6 @@ contract TokenSwapper is ISwapTokens {
 
     emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
 
-    TokenSwapperUtils.storeTransientBool(
-      SAME_CONTRACT_SWAP_TRANSIENT_KEY,
-      _swap.acceptorERCContract == _swap.initiatorERCContract
-    );
-
     address realAcceptor = _swap.acceptor == ZERO_ADDRESS ? msg.sender : _swap.acceptor;
 
     getTokenTransfer(_swap.initiatorTokenType)(
@@ -180,8 +170,6 @@ contract TokenSwapper is ISwapTokens {
       realAcceptor,
       _swap.initiator
     );
-
-    TokenSwapperUtils.wipeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
   }
 
   /**
@@ -191,7 +179,7 @@ contract TokenSwapper is ISwapTokens {
    * @param _swapId The ID of the swap.
    */
   function removeSwap(uint256 _swapId, Swap calldata _swap) external nonReentrant {
-    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwapCalldata(_swap)) {
+    if (swapHashes[_swapId] != NonCancunTokenSwapperUtils.hashTokenSwapCalldata(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -226,10 +214,9 @@ contract TokenSwapper is ISwapTokens {
 
     emit BalanceWithDrawn(msg.sender, callerBalance);
 
-    bytes4 errorSelector = ISwapTokens.ETHSendingFailed.selector;
+    bytes4 errorSelector = INonCancunSwapTokens.ETHSendingFailed.selector;
     assembly {
-      let success := call(gas(), caller(), callerBalance, 0, 0, 0, 0)
-      if iszero(success) {
+      if iszero(call(gas(), caller(), callerBalance, 0, 0, 0, 0)) {
         let ptr := mload(0x40)
         mstore(ptr, errorSelector)
         revert(ptr, 0x4)
@@ -244,7 +231,7 @@ contract TokenSwapper is ISwapTokens {
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
   function getSwapStatus(uint256 _swapId, Swap memory _swap) external view returns (SwapStatus memory swapStatus) {
-    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != NonCancunTokenSwapperUtils.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -267,10 +254,6 @@ contract TokenSwapper is ISwapTokens {
       !(swapStatus.initiatorTokenRequiresApproval) &&
       !(swapStatus.acceptorNeedsToOwnToken) &&
       !(swapStatus.acceptorTokenRequiresApproval);
-  }
-
-  function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap) {
-    isSameContractSwap = TokenSwapperUtils.loadTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
   }
 
   /**
@@ -547,16 +530,6 @@ contract TokenSwapper is ISwapTokens {
    * @dev While this seems counterintuitive to do nothing, it is cleaner this way.
    */
   function noneTransferer(address, uint256, uint256, address, address) internal pure {}
-
-  modifier nonReentrant() {
-    if (TokenSwapperUtils.loadTransientBool(REENTRY_TRANSIENT_KEY)) {
-      revert NoReentry();
-    }
-
-    TokenSwapperUtils.storeTransientBool(REENTRY_TRANSIENT_KEY, true);
-    _;
-    TokenSwapperUtils.wipeTransientBool(REENTRY_TRANSIENT_KEY);
-  }
 }
 
 /*   
