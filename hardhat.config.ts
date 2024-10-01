@@ -65,8 +65,10 @@ const config: HardhatUserConfig = {
       url: "https://sepolia.infura.io/v3/" + process.env.INFURA_API_KEY,
     },
     linea_sepolia: {
-      //accounts: [process.env.LINEA_SEPOLIA_PRIVATE_KEY || ""],
       url: "https://linea-sepolia.infura.io/v3/" + process.env.INFURA_API_KEY,
+    },
+    linea_mainnet: {
+      url: "https://linea-mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
     },
   },
   mocha: {
@@ -78,6 +80,7 @@ const config: HardhatUserConfig = {
       goerli: process.env.ETHERSCAN_API_KEY ?? "",
       sepolia: process.env.ETHERSCAN_API_KEY ?? "",
       linea_sepolia: process.env.LINEASCAN_API_KEY ?? "",
+      linea_mainnet: process.env.LINEASCAN_API_KEY ?? "",
     },
     customChains: [
       {
@@ -86,6 +89,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-sepolia.lineascan.build/api",
           browserURL: "https://sepolia.lineascan.build/",
+        },
+      },
+      {
+        network: "linea_mainnet",
+        chainId: 59144,
+        urls: {
+          apiURL: "https://api.lineascan.build/api",
+          browserURL: "https://lineascan.build/",
         },
       },
     ],
