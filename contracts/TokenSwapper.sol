@@ -428,7 +428,9 @@ contract TokenSwapper is ISwapTokens {
     IERC721 erc721Token = IERC721(_tokenAddress);
 
     needsToOwnToken = erc721Token.ownerOf(_tokenId) != _tokenOwner;
-    tokenRequiresApproval = erc721Token.getApproved(_tokenId) != address(this);
+    tokenRequiresApproval =
+      erc721Token.getApproved(_tokenId) != address(this) &&
+      !erc721Token.isApprovedForAll(_tokenOwner, address(this));
   }
 
   /**
