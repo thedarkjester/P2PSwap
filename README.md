@@ -43,7 +43,7 @@ After discussing agreed terms, `pI will set up the swap` with those terms.
 **`Super important note for pI`:** If pA doesn't accept the swap, pI can always retrieve their sent ETH if any and remove the swap. (`removeSwap` function)
 
 1. pI interacts with the swapper contract and gives the following information: (`initiateSwap` function)
-
+   - Swap expiry in the future to prevent later concerns
    - pI's Token Contract address
    - pI's Token Type
    - pI's Token Id

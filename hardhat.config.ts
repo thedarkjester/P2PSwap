@@ -35,7 +35,21 @@ const config: HardhatUserConfig = {
           evmVersion: "cancun",
         },
       },
+      {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: false,
+          evmVersion: "london",
+        },
+      },
     ],
+  },
+  sourcify: {
+    enabled: true,
   },
   networks: {
     hardhat: {
@@ -50,15 +64,31 @@ const config: HardhatUserConfig = {
     sepolia: {
       url: "https://sepolia.infura.io/v3/" + process.env.INFURA_API_KEY,
     },
+    linea_sepolia: {
+      //accounts: [process.env.LINEA_SEPOLIA_PRIVATE_KEY || ""],
+      url: "https://linea-sepolia.infura.io/v3/" + process.env.INFURA_API_KEY,
+    },
   },
-  sourcify: {
-    enabled: true
+  mocha: {
+    timeout: 20000,
   },
   etherscan: {
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY ?? "",
+      goerli: process.env.ETHERSCAN_API_KEY ?? "",
       sepolia: process.env.ETHERSCAN_API_KEY ?? "",
+      linea_sepolia: process.env.LINEASCAN_API_KEY ?? "",
     },
+    customChains: [
+      {
+        network: "linea_sepolia",
+        chainId: 59141,
+        urls: {
+          apiURL: "https://api-sepolia.lineascan.build/api",
+          browserURL: "https://sepolia.lineascan.build/",
+        },
+      },
+    ],
   },
 };
 
