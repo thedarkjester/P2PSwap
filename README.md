@@ -11,7 +11,7 @@ Ethereum Mainnet:
 - This is registered at: `p2pswap.eth`, `swapp2p.eth` and `p2pswop.eth`
 
 Verified contracts on LineaScan - 
-Ethereum Sepolia:
+Linea Sepolia:
 - https://sepolia.lineascan.build/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
 
 Linea Mainnet:
