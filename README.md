@@ -3,12 +3,19 @@
 ## Where is the official deploy at?
 
 Verified contracts on Etherscan - 
-Sepolia:
-- https://sepolia.etherscan.io/address/0xdCaCC46f91cFabCef537072F7f26073685d5fC31#code
+Ethereum Sepolia:
+- https://sepolia.etherscan.io/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
 
-Mainnet:
-- https://etherscan.io/address/0x91fe1560de3c6c512831d3fbecaa10f330ca5454#code
-- This is registered at: `otc-token-swap.eth` and `swap-token-otc.eth`
+Ethereum Mainnet:
+- https://etherscan.io/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
+- This is registered at: `p2pswap.eth`, `swapp2p.eth` and `p2pswop.eth`
+
+Verified contracts on LineaScan - 
+Linea Sepolia:
+- https://sepolia.lineascan.build/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
+
+Linea Mainnet:
+- https://lineascan.build/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
 
 ## Ok, so what is this Token Swapper thing? 
 
