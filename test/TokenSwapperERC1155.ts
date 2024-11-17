@@ -209,7 +209,7 @@ describe("tokenSwapper 1155 testing", function () {
       );
     });
 
-    it("Initiates with both types as none", async function () {
+    it("Fails to initiate with both types as none", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       defaultSwap.initiatorTokenQuantity = 0;
@@ -230,6 +230,18 @@ describe("tokenSwapper 1155 testing", function () {
     it("Fails when token type unknown", async function () {
       defaultSwap.acceptorTokenType = 5;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.reverted;
+    });
+
+    it("Initiates with empty acceptor address and ERC1155 set", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorTokenId = 1;
+      defaultSwap.acceptorTokenType = 4;
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      const expectedHash = keccakSwap(defaultSwap);
+
+      expect(await tokenSwapper.swapHashes(1n)).equal(expectedHash);
     });
 
     it("Fails when it has expiry is in the past.", async function () {
@@ -663,6 +675,19 @@ describe("tokenSwapper 1155 testing", function () {
     });
 
     it("Emits the SwapComplete event", async function () {
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+
+      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+        .to.emit(tokenSwapper, "SwapComplete")
+        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+    });
+
+    it("Emits the SwapComplete event on open swap", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
       await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);

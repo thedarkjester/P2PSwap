@@ -227,6 +227,18 @@ describe("tokenSwapper erc20 testing", function () {
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.reverted;
     });
 
+    it("Initiates with empty acceptor address and ERC21 set", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorTokenId = 1;
+      defaultSwap.acceptorTokenType = 1;
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      const expectedHash = keccakSwap(defaultSwap);
+
+      expect(await tokenSwapper.swapHashes(1n)).equal(expectedHash);
+    });
+
     it("Fails when it has expiry is in the past.", async function () {
       await networkTime.increase(86400);
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
@@ -610,6 +622,19 @@ describe("tokenSwapper erc20 testing", function () {
     });
 
     it("Emits the SwapComplete event", async function () {
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await erc20A.connect(swapper1).approve(tokenSwapperAddress, 500);
+      await erc20B.connect(swapper2).approve(tokenSwapperAddress, 500);
+
+      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+        .to.emit(tokenSwapper, "SwapComplete")
+        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+    });
+
+    it("Emits the SwapComplete event on an open swap", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
       await erc20A.connect(swapper1).approve(tokenSwapperAddress, 500);
