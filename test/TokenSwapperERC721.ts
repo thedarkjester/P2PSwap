@@ -184,7 +184,7 @@ describe("tokenSwapper 721 testing", function () {
       );
     });
 
-    it("Initiates with both types as none", async function () {
+    it("Fails to initiate with both types as none", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       defaultSwap.initiatorTokenQuantity = 0;
@@ -212,6 +212,17 @@ describe("tokenSwapper 721 testing", function () {
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "SwapIsInThePast",
+      );
+    });
+
+    it("Fails to initiate with empty acceptor address and ERC721 set", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorTokenId = 1;
+      defaultSwap.acceptorTokenType = 3;
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "ZeroAddressDisallowed",
       );
     });
 
@@ -617,6 +628,14 @@ describe("tokenSwapper 721 testing", function () {
       expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapComplete")
         .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+    });
+
+    it("Fails with acceptor as address zero", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "ZeroAddressDisallowed",
+      );
     });
 
     it("Fails when contract does not have swapper 1 approval", async function () {

@@ -49,11 +49,8 @@ contract TokenSwapper is ISwapTokens {
       revert SwapIsInThePast();
     }
 
-    /// @dev allow zero address for ERC20/777 tokens for anyone to pick it up
-    if (
-      _swap.acceptor == ZERO_ADDRESS &&
-      (_swap.acceptorTokenType != TokenType.ERC20 && _swap.acceptorTokenType != TokenType.ERC777)
-    ) {
+    /// @dev allow zero address for any but ERC721.
+    if (_swap.acceptor == ZERO_ADDRESS && _swap.acceptorTokenType == TokenType.ERC721) {
       revert ZeroAddressDisallowed();
     }
 
