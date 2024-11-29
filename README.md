@@ -4,18 +4,18 @@
 
 Verified contracts on Etherscan - 
 Ethereum Sepolia:
-- https://sepolia.etherscan.io/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
+- https://sepolia.etherscan.io/address/0x5343B7751483F60714Dc237d88f796b8023b529E#code
 
 Ethereum Mainnet:
-- https://etherscan.io/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
+- https://etherscan.io/address/0x5343B7751483F60714Dc237d88f796b8023b529E#code
 - This is registered at: `p2pswap.eth`, `swapp2p.eth` and `p2pswop.eth`
 
 Verified contracts on LineaScan - 
 Linea Sepolia:
-- https://sepolia.lineascan.build/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
+- https://sepolia.lineascan.build/address/0x5343B7751483F60714Dc237d88f796b8023b529E#code
 
 Linea Mainnet:
-- https://lineascan.build/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db#code
+- https://lineascan.build/address/0x5343B7751483F60714Dc237d88f796b8023b529E#code
 
 ## Ok, so what is this Token Swapper thing? 
 
