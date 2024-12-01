@@ -91,6 +91,28 @@ contract Reentry1155Tester is IERC1155Receiver {
       swapperRemover.removeSwap(1, swap);
     }
 
+    if (id == 2) {
+      ISwapTokens.Swap memory swap = ISwapTokens.Swap({
+        expiryDate: expiryDate,
+        initiatorERCContract: msg.sender,
+        acceptorERCContract: msg.sender,
+        initiator: address(this),
+        initiatorTokenId: 4,
+        initiatorTokenQuantity: 1,
+        acceptor: target,
+        acceptorTokenId: 2,
+        acceptorTokenQuantity: 1,
+        initiatorETHPortion: 0,
+        acceptorETHPortion: 0,
+        initiatorTokenType: ISwapTokens.TokenType.ERC1155,
+        acceptorTokenType: ISwapTokens.TokenType.ERC1155
+      });
+
+      ISwapTokens swapperRemover = ISwapTokens(swapperAddress);
+
+      swapperRemover.removeSwap(1, swap);
+    }
+
     return IERC1155Receiver.onERC1155Received.selector;
   }
 

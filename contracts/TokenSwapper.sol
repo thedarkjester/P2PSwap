@@ -266,6 +266,10 @@ contract TokenSwapper is ISwapTokens {
       !(swapStatus.acceptorTokenRequiresApproval);
   }
 
+  /**
+   * @notice Returns whether or not the swap is using the same contract address on both side.
+   * @return isSameContractSwap The bool indicating if the swap is using the same address.
+   */
   function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap) {
     isSameContractSwap = TokenSwapperUtils.loadTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
   }
