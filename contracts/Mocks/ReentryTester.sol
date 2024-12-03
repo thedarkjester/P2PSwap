@@ -8,34 +8,6 @@ contract ReentryTester is IERC721Receiver {
   address private swapperAddress;
   address private target;
 
-  function initiateSwap(
-    address _initiatorERCContract,
-    address _acceptorERCContract,
-    address _acceptor,
-    uint256 _acceptorETHPortion,
-    uint256 _initiatorTokenId,
-    uint256 _acceptorTokenId,
-    address _swapperAddress
-  ) external payable {
-    ISwapTokens swapper = ISwapTokens(_swapperAddress);
-
-    ISwapTokens.Swap memory swap = ISwapTokens.Swap({
-      expiryDate: 2733055232,
-      initiatorERCContract: _initiatorERCContract,
-      acceptorERCContract: _acceptorERCContract,
-      initiator: address(this),
-      initiatorTokenId: _initiatorTokenId,
-      initiatorTokenQuantity: 0,
-      acceptor: _acceptor,
-      acceptorTokenId: _acceptorTokenId,
-      acceptorTokenQuantity: 0,
-      initiatorETHPortion: msg.value,
-      acceptorETHPortion: _acceptorETHPortion,
-      initiatorTokenType: ISwapTokens.TokenType.ERC721,
-      acceptorTokenType: ISwapTokens.TokenType.ERC721
-    });
-  }
-
   function onERC721Received(address, address, uint256 tokenId, bytes calldata) external returns (bytes4) {
     if (tokenId == 1) {
       ISwapTokens.Swap memory swap = ISwapTokens.Swap({
