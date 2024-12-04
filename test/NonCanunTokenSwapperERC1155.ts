@@ -3,12 +3,11 @@ import { ethers } from "hardhat";
 import { AbiCoder } from "ethers";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { ISwapTokens, Reentry1155Tester, TokenSwapper, My1155Token } from "../typechain-types";
-import { bigint } from "hardhat/internal/core/params/argumentTypes";
+import { ISwapTokens, Reentry1155Tester, NonCancunTokenSwapper, My1155Token } from "../typechain-types";
 
 describe("tokenSwapper 1155 testing", function () {
   const GENERIC_SWAP_ETH = ethers.parseEther("1");
-  let tokenSwapper: TokenSwapper;
+  let tokenSwapper: NonCancunTokenSwapper;
   let tokenSwapperAddress: string;
   let myToken: My1155Token;
   let reentryTester: Reentry1155Tester;
@@ -25,7 +24,7 @@ describe("tokenSwapper 1155 testing", function () {
   let defaultSwap: ISwapTokens.SwapStruct;
 
   async function deploytokenSwapperFixture() {
-    const tokenSwapperFactory = await ethers.getContractFactory("TokenSwapper");
+    const tokenSwapperFactory = await ethers.getContractFactory("NonCancunTokenSwapper");
     tokenSwapper = await tokenSwapperFactory.deploy();
     tokenSwapperAddress = await tokenSwapper.getAddress();
   }
@@ -527,7 +526,7 @@ describe("tokenSwapper 1155 testing", function () {
 
       await expect(reentryTester.completeSwap(1, tokenSwapperAddress, defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "NoReentry",
+        "ReentrancyGuardReentrantCall",
       );
     });
 
@@ -535,6 +534,7 @@ describe("tokenSwapper 1155 testing", function () {
       defaultSwap.initiator = reentryTesterAddress;
       defaultSwap.initiatorTokenId = 4n;
       defaultSwap.acceptor = swapper2Address;
+      defaultSwap.acceptorTokenId = 2n;
 
       await reentryTester.initiateSwap(
         BigInt(Math.floor(Date.now() / 1000)) + 66400n,
@@ -552,7 +552,7 @@ describe("tokenSwapper 1155 testing", function () {
 
       await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
-        "NoReentry",
+        "ReentrancyGuardReentrantCall",
       );
     });
 
