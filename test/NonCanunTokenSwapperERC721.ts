@@ -3,15 +3,15 @@ import { ethers } from "hardhat";
 import { AbiCoder } from "ethers";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { ISwapTokens, Reentry1155Tester, TokenSwapper, My1155Token } from "../typechain-types";
-import { bigint } from "hardhat/internal/core/params/argumentTypes";
+import { ISwapTokens, ReentryTester, NonCancunTokenSwapper, MyToken } from "../typechain-types";
 
-describe("tokenSwapper 1155 testing", function () {
+describe("tokenSwapper 721 testing", function () {
   const GENERIC_SWAP_ETH = ethers.parseEther("1");
-  let tokenSwapper: TokenSwapper;
+
+  let tokenSwapper: NonCancunTokenSwapper;
   let tokenSwapperAddress: string;
-  let myToken: My1155Token;
-  let reentryTester: Reentry1155Tester;
+  let myToken: MyToken;
+  let reentryTester: ReentryTester;
   let reentryTesterAddress: string;
 
   let myTokenAddress: string;
@@ -25,19 +25,19 @@ describe("tokenSwapper 1155 testing", function () {
   let defaultSwap: ISwapTokens.SwapStruct;
 
   async function deploytokenSwapperFixture() {
-    const tokenSwapperFactory = await ethers.getContractFactory("TokenSwapper");
+    const tokenSwapperFactory = await ethers.getContractFactory("NonCancunTokenSwapper");
     tokenSwapper = await tokenSwapperFactory.deploy();
     tokenSwapperAddress = await tokenSwapper.getAddress();
   }
 
   async function deployMyTokenFixture() {
-    const MyTokenFactory = await ethers.getContractFactory("My1155Token");
-    myToken = await MyTokenFactory.deploy(owner, tokenSwapperAddress);
+    const MyTokenFactory = await ethers.getContractFactory("MyToken");
+    myToken = await MyTokenFactory.deploy(owner);
     myTokenAddress = await myToken.getAddress();
   }
 
   async function deployRentryContractsFixture() {
-    const ReentryTesterFactory = await ethers.getContractFactory("Reentry1155Tester");
+    const ReentryTesterFactory = await ethers.getContractFactory("ReentryTester");
     reentryTester = await ReentryTesterFactory.deploy();
     reentryTesterAddress = await reentryTester.getAddress();
   }
@@ -46,12 +46,12 @@ describe("tokenSwapper 1155 testing", function () {
   // swapper 2 has 2 tokens to start (2,3)
   // reentry has 2 tokens to start (4,5)
   async function mintTokensToSwap() {
-    await myToken.connect(owner).safeMintById(swapper1.address, 0);
-    await myToken.connect(owner).safeMintById(swapper1.address, 1);
-    await myToken.connect(owner).safeMintById(swapper2.address, 2);
-    await myToken.connect(owner).safeMintById(swapper2.address, 3);
-    await myToken.connect(owner).safeMintById(reentryTesterAddress, 4);
-    await myToken.connect(owner).safeMintById(reentryTesterAddress, 5);
+    await myToken.connect(owner).safeMint(swapper1.address);
+    await myToken.connect(owner).safeMint(swapper1.address);
+    await myToken.connect(owner).safeMint(swapper2.address);
+    await myToken.connect(owner).safeMint(swapper2.address);
+    await myToken.connect(owner).safeMint(reentryTesterAddress);
+    await myToken.connect(owner).safeMint(reentryTesterAddress);
   }
 
   before(async () => {
@@ -111,20 +111,19 @@ describe("tokenSwapper 1155 testing", function () {
       );
     });
 
-    it("Fails with empty initiator contract address and tokenIdOrAmount set", async function () {
-      defaultSwap.initiatorERCContract = ethers.ZeroAddress;
+    it("Fails with no tokenId set", async function () {
+      defaultSwap.initiatorTokenId = 0n;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       await expect(
         tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH }),
-      ).to.be.revertedWithCustomError(tokenSwapper, "ZeroAddressSetForValidTokenType");
+      ).to.be.revertedWithCustomError(tokenSwapper, "TokenIdMissing");
     });
 
     it("Fails with no value and no token data", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
-      defaultSwap.initiatorETHPortion = 0n;
-      defaultSwap.initiatorTokenId = 0n;
-      defaultSwap.initiatorTokenQuantity = 0n;
-      defaultSwap.initiatorTokenType = 0n;
+      defaultSwap.initiatorETHPortion = 0;
+      defaultSwap.initiatorTokenId = 0;
+      defaultSwap.initiatorTokenType = 0;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
         "ValueOrTokenMissing",
@@ -185,30 +184,6 @@ describe("tokenSwapper 1155 testing", function () {
       );
     });
 
-    it("Fails with no tokenId", async function () {
-      defaultSwap.initiatorTokenId = 0n;
-      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
-        tokenSwapper,
-        "TokenIdMissing",
-      );
-    });
-
-    it("Fails with no amount", async function () {
-      defaultSwap.initiatorTokenQuantity = 0n;
-      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
-        tokenSwapper,
-        "TokenQuantityMissing",
-      );
-    });
-
-    it("Fails with no amount", async function () {
-      defaultSwap.acceptorTokenQuantity = 0n;
-      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
-        tokenSwapper,
-        "TokenQuantityMissing",
-      );
-    });
-
     it("Fails to initiate with both types as none", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
@@ -232,18 +207,6 @@ describe("tokenSwapper 1155 testing", function () {
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.reverted;
     });
 
-    it("Initiates with empty acceptor address and ERC1155 set", async function () {
-      defaultSwap.acceptor = ethers.ZeroAddress;
-      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
-      defaultSwap.acceptorTokenId = 1;
-      defaultSwap.acceptorTokenType = 4;
-      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
-
-      const expectedHash = keccakSwap(defaultSwap);
-
-      expect(await tokenSwapper.swapHashes(1n)).equal(expectedHash);
-    });
-
     it("Fails when it has expiry is in the past.", async function () {
       await networkTime.increase(86400);
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
@@ -252,12 +215,22 @@ describe("tokenSwapper 1155 testing", function () {
       );
     });
 
+    it("Fails to initiate with empty acceptor address and ERC721 set", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorTokenId = 1;
+      defaultSwap.acceptorTokenType = 3;
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "ZeroAddressDisallowed",
+      );
+    });
+
     it("Initiates with empty initiator contract address and ETH value set", async function () {
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
-      defaultSwap.initiatorTokenId = 0n;
-      defaultSwap.initiatorTokenType = 0n;
-      defaultSwap.initiatorTokenQuantity = 0n;
+      defaultSwap.initiatorTokenId = 0;
+      defaultSwap.initiatorTokenType = 0;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, {
         value: GENERIC_SWAP_ETH,
       });
@@ -270,9 +243,8 @@ describe("tokenSwapper 1155 testing", function () {
     it("Initiates with empty acceptor contract address and ETH value set", async function () {
       defaultSwap.acceptorERCContract = ethers.ZeroAddress;
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
-      defaultSwap.acceptorTokenType = 0n;
-      defaultSwap.acceptorTokenQuantity = 0n;
-      defaultSwap.acceptorTokenId = 0n;
+      defaultSwap.acceptorTokenId = 0;
+      defaultSwap.acceptorTokenType = 0;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
       const expectedHash = keccakSwap(defaultSwap);
@@ -355,8 +327,8 @@ describe("tokenSwapper 1155 testing", function () {
 
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2);
 
       const swapStatus: ISwapTokens.SwapStatusStruct = await tokenSwapper.getSwapStatus(1n, defaultSwap);
 
@@ -369,9 +341,8 @@ describe("tokenSwapper 1155 testing", function () {
 
     it("Returns all true except readiness when no balance", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
-
-      await myToken.connect(swapper1).safeTransferFrom(swapper1Address, swapper2Address, 1, 1, "0x");
-      await myToken.connect(swapper2).safeTransferFrom(swapper2Address, swapper1Address, 2, 1, "0x");
+      await myToken.connect(swapper1).safeTransfer(swapper1Address, swapper2Address, 1);
+      await myToken.connect(swapper2).safeTransfer(swapper2Address, swapper1Address, 2);
 
       const swapStatus: ISwapTokens.SwapStatusStruct = await tokenSwapper.getSwapStatus(1n, defaultSwap);
 
@@ -380,6 +351,46 @@ describe("tokenSwapper 1155 testing", function () {
       expect(swapStatus.initiatorTokenRequiresApproval).true;
       expect(swapStatus.acceptorTokenRequiresApproval).true;
       expect(swapStatus.isReadyForSwapping).false;
+    });
+
+    it("Returns all false for ownership and approvals when one side is ETH", async function () {
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorERCContract = ethers.ZeroAddress;
+      defaultSwap.acceptorTokenId = 0n;
+      defaultSwap.acceptorTokenQuantity = 0n;
+      defaultSwap.acceptorTokenType = 0n;
+
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1);
+
+      const swapStatus: ISwapTokens.SwapStatusStruct = await tokenSwapper.getSwapStatus(1n, defaultSwap);
+
+      expect(swapStatus.initiatorNeedsToOwnToken).false;
+      expect(swapStatus.acceptorNeedsToOwnToken).false;
+      expect(swapStatus.initiatorTokenRequiresApproval).false;
+      expect(swapStatus.acceptorTokenRequiresApproval).false;
+      expect(swapStatus.isReadyForSwapping).true;
+    });
+
+    it("Returns all false for ownership and approvals when one side is ETH with approveForAll", async function () {
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.acceptorERCContract = ethers.ZeroAddress;
+      defaultSwap.acceptorTokenId = 0n;
+      defaultSwap.acceptorTokenQuantity = 0n;
+      defaultSwap.acceptorTokenType = 0n;
+
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
+
+      const swapStatus: ISwapTokens.SwapStatusStruct = await tokenSwapper.getSwapStatus(1n, defaultSwap);
+
+      expect(swapStatus.initiatorNeedsToOwnToken).false;
+      expect(swapStatus.acceptorNeedsToOwnToken).false;
+      expect(swapStatus.initiatorTokenRequiresApproval).false;
+      expect(swapStatus.acceptorTokenRequiresApproval).false;
+      expect(swapStatus.isReadyForSwapping).true;
     });
   });
 
@@ -493,69 +504,6 @@ describe("tokenSwapper 1155 testing", function () {
   });
 
   describe("Swap completion", function () {
-    it("Fails if removeSwap called again", async function () {
-      defaultSwap.initiatorETHPortion = ethers.parseEther("1");
-      defaultSwap.initiator = reentryTesterAddress;
-      await reentryTester.initiateSwap(
-        BigInt(Math.floor(Date.now() / 1000)) + 86400n,
-        myTokenAddress,
-        myTokenAddress,
-        swapper2,
-        0n,
-        1n,
-        2n,
-        tokenSwapper,
-        {
-          value: ethers.parseEther("1"),
-        },
-      );
-
-      await expect(reentryTester.removeSwap(1, tokenSwapperAddress, defaultSwap)).to.be.revertedWithCustomError(
-        tokenSwapper,
-        "SwapCompleteOrDoesNotExist",
-      );
-    });
-
-    it("Fails reentry if completeSwap called again", async function () {
-      defaultSwap.acceptor = reentryTesterAddress;
-      defaultSwap.acceptorTokenId = 4n;
-
-      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
-
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await reentryTester.approveToken(myTokenAddress, tokenSwapperAddress);
-
-      await expect(reentryTester.completeSwap(1, tokenSwapperAddress, defaultSwap)).to.be.revertedWithCustomError(
-        tokenSwapper,
-        "NoReentry",
-      );
-    });
-
-    it("Fails reentry if calling removeswap while swapping", async function () {
-      defaultSwap.initiator = reentryTesterAddress;
-      defaultSwap.initiatorTokenId = 4n;
-      defaultSwap.acceptor = swapper2Address;
-
-      await reentryTester.initiateSwap(
-        BigInt(Math.floor(Date.now() / 1000)) + 66400n,
-        myTokenAddress,
-        myTokenAddress,
-        swapper2Address,
-        0n,
-        4n,
-        2n,
-        tokenSwapperAddress,
-      );
-
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
-      await reentryTester.approveToken(myTokenAddress, tokenSwapperAddress);
-
-      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap)).to.be.revertedWithCustomError(
-        tokenSwapper,
-        "NoReentry",
-      );
-    });
-
     it("Fails when does not exist", async function () {
       await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap)).to.be.revertedWithCustomError(
         tokenSwapper,
@@ -606,8 +554,8 @@ describe("tokenSwapper 1155 testing", function () {
     it("Resets swap to default values", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2);
 
       await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap);
 
@@ -620,27 +568,25 @@ describe("tokenSwapper 1155 testing", function () {
       defaultSwap.initiatorTokenId = 0n;
       defaultSwap.initiatorERCContract = ethers.ZeroAddress;
       defaultSwap.initiatorTokenType = 0n;
-      defaultSwap.initiatorTokenQuantity = 0n;
 
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
 
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2n);
 
-      const ownerOfAcceptorToken = (await myToken.balanceOf(swapper2Address, 2n)) > 0n;
-
+      const ownerOfAcceptorToken = await myToken.ownerOf(2n);
       const swapper1Balance = await tokenSwapper.balances(swapper1.address);
       const swapper2Balance = await tokenSwapper.balances(swapper2.address);
 
       expect(swapper1Balance).equal(0);
       expect(swapper2Balance).equal(0);
 
-      expect(ownerOfAcceptorToken).true;
+      expect(ownerOfAcceptorToken).equal(swapper2Address);
 
       expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapComplete")
         .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
 
-      expect((await myToken.balanceOf(swapper1Address, 2n)) > 0).true;
+      expect(await myToken.ownerOf(2n)).equal(swapper1Address);
       expect(await tokenSwapper.balances(swapper2Address)).equal(GENERIC_SWAP_ETH);
     });
 
@@ -648,60 +594,54 @@ describe("tokenSwapper 1155 testing", function () {
       defaultSwap.initiatorETHPortion = 0n;
       defaultSwap.acceptorTokenId = 0n;
       defaultSwap.acceptorERCContract = ethers.ZeroAddress;
-      defaultSwap.acceptorTokenType = 0n;
-      defaultSwap.acceptorTokenQuantity = 0n;
+      defaultSwap.acceptorTokenType = 0;
 
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
 
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1n);
 
-      const ownerOfInitiatorToken = (await myToken.balanceOf(swapper1Address, 1n)) > 0n;
+      const ownerOfInitiatorToken = await myToken.ownerOf(1n);
       const swapper1Balance = await tokenSwapper.balances(swapper1.address);
       const swapper2Balance = await tokenSwapper.balances(swapper2.address);
 
       expect(swapper1Balance).equal(0);
       expect(swapper2Balance).equal(0);
 
-      expect(ownerOfInitiatorToken).true;
+      expect(ownerOfInitiatorToken).equal(swapper1Address);
 
       expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH }))
         .to.emit(tokenSwapper, "SwapComplete")
         .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
 
-      expect((await myToken.balanceOf(swapper2Address, 1n)) > 0).true;
+      expect(await myToken.ownerOf(1n)).equal(swapper2Address);
       expect(await tokenSwapper.balances(swapper1Address)).equal(GENERIC_SWAP_ETH);
     });
 
     it("Emits the SwapComplete event", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2);
 
       expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapComplete")
         .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
     });
 
-    it("Emits the SwapComplete event on open swap", async function () {
+    it("Fails with acceptor as address zero", async function () {
       defaultSwap.acceptor = ethers.ZeroAddress;
-
-      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
-
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
-
-      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
-        .to.emit(tokenSwapper, "SwapComplete")
-        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
+        tokenSwapper,
+        "ZeroAddressDisallowed",
+      );
     });
 
     it("Fails when contract does not have swapper 1 approval", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2n);
 
       const swapper1Balance = await tokenSwapper.balances(swapper1.address);
       const swapper2Balance = await tokenSwapper.balances(swapper2.address);
@@ -715,8 +655,8 @@ describe("tokenSwapper 1155 testing", function () {
     it("Fails when acceptor does not have ownership", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1n);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2n);
 
       const swapper1Balance = await tokenSwapper.balances(swapper1.address);
       const swapper2Balance = await tokenSwapper.balances(swapper2.address);
@@ -724,7 +664,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(swapper1Balance).equal(0);
       expect(swapper2Balance).equal(0);
 
-      await myToken.connect(swapper2).safeTransferFrom(swapper2Address, swapper1Address, 2n, 1n, "0x");
+      await myToken.connect(swapper2).safeTransfer(swapper2Address, swapper1Address, 2n);
 
       await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap)).to.be.reverted;
     });
@@ -732,7 +672,7 @@ describe("tokenSwapper 1155 testing", function () {
     it("Fails when contract does not have swapper 2 approval", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1n);
 
       const swapper1Balance = await tokenSwapper.balances(swapper1.address);
       const swapper2Balance = await tokenSwapper.balances(swapper2.address);
@@ -746,8 +686,8 @@ describe("tokenSwapper 1155 testing", function () {
     it("Fails when initiator does not have ownership", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1n);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2n);
 
       const swapper1Balance = await tokenSwapper.balances(swapper1.address);
       const swapper2Balance = await tokenSwapper.balances(swapper2.address);
@@ -755,7 +695,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(swapper1Balance).equal(0);
       expect(swapper2Balance).equal(0);
 
-      await myToken.connect(swapper1).safeTransferFrom(swapper1Address, swapper2Address, 1n, 1n, "0x");
+      await myToken.connect(swapper1).safeTransfer(swapper1Address, swapper2Address, 1n);
 
       await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap)).to.be.reverted;
     });
@@ -763,28 +703,27 @@ describe("tokenSwapper 1155 testing", function () {
     it("Swaps ownership with no ETH balances needing updating", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1n);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2n);
 
-      let ownerOfInitiatorToken = (await myToken.balanceOf(swapper1Address, 1n)) > 0n;
-      let ownerOfAcceptorToken = (await myToken.balanceOf(swapper2Address, 2n)) > 0n;
-
+      let ownerOf1 = await myToken.ownerOf(1n);
+      let ownerOf2 = await myToken.ownerOf(2n);
       let swapper1Balance = await tokenSwapper.balances(swapper1.address);
       let swapper2Balance = await tokenSwapper.balances(swapper2.address);
 
       expect(swapper1Balance).equal(0);
       expect(swapper2Balance).equal(0);
 
-      expect(ownerOfInitiatorToken).true;
-      expect(ownerOfAcceptorToken).true;
+      expect(swapper1Address).equal(ownerOf1);
+      expect(swapper2Address).equal(ownerOf2);
 
       await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap);
 
-      ownerOfInitiatorToken = (await myToken.balanceOf(swapper2Address, 1n)) > 0n;
-      ownerOfAcceptorToken = (await myToken.balanceOf(swapper1Address, 2n)) > 0n;
+      ownerOf1 = await myToken.ownerOf(1n);
+      ownerOf2 = await myToken.ownerOf(2n);
 
-      expect(ownerOfInitiatorToken).true;
-      expect(ownerOfAcceptorToken).true;
+      expect(swapper1Address).equal(ownerOf2);
+      expect(swapper2Address).equal(ownerOf1);
 
       swapper1Balance = await tokenSwapper.balances(swapper1.address);
       swapper2Balance = await tokenSwapper.balances(swapper2.address);
@@ -799,28 +738,27 @@ describe("tokenSwapper 1155 testing", function () {
 
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1n);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2n);
 
-      let ownerOfInitiatorToken = (await myToken.balanceOf(swapper1Address, 1n)) > 0n;
-      let ownerOfAcceptorToken = (await myToken.balanceOf(swapper2Address, 2n)) > 0n;
-
+      let ownerOf1 = await myToken.ownerOf(1n);
+      let ownerOf2 = await myToken.ownerOf(2n);
       let swapper1Balance = await tokenSwapper.balances(swapper1.address);
       let swapper2Balance = await tokenSwapper.balances(swapper2.address);
 
       expect(swapper1Balance).equal(0);
       expect(swapper2Balance).equal(0);
 
-      expect(ownerOfInitiatorToken).true;
-      expect(ownerOfAcceptorToken).true;
+      expect(swapper1Address).equal(ownerOf1);
+      expect(swapper2Address).equal(ownerOf2);
 
       await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap);
 
-      ownerOfInitiatorToken = (await myToken.balanceOf(swapper2Address, 1n)) > 0n;
-      ownerOfAcceptorToken = (await myToken.balanceOf(swapper1Address, 2n)) > 0n;
+      ownerOf1 = await myToken.ownerOf(1n);
+      ownerOf2 = await myToken.ownerOf(2n);
 
-      expect(ownerOfInitiatorToken).true;
-      expect(ownerOfAcceptorToken).true;
+      expect(swapper1Address).equal(ownerOf2);
+      expect(swapper2Address).equal(ownerOf1);
 
       swapper1Balance = await tokenSwapper.balances(swapper1.address);
       swapper2Balance = await tokenSwapper.balances(swapper2.address);
@@ -834,28 +772,59 @@ describe("tokenSwapper 1155 testing", function () {
 
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
-      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1n);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2n);
 
-      let ownerOfInitiatorToken = (await myToken.balanceOf(swapper1Address, 1n)) > 0n;
-      let ownerOfAcceptorToken = (await myToken.balanceOf(swapper2Address, 2n)) > 0n;
-
+      let ownerOf1 = await myToken.ownerOf(1n);
+      let ownerOf2 = await myToken.ownerOf(2n);
       let swapper1Balance = await tokenSwapper.balances(swapper1.address);
       let swapper2Balance = await tokenSwapper.balances(swapper2.address);
 
-      expect(ownerOfInitiatorToken).true;
-      expect(ownerOfAcceptorToken).true;
-
+      expect(swapper1Address).equal(ownerOf1);
+      expect(swapper2Address).equal(ownerOf2);
       expect(swapper1Balance).equal(0);
       expect(swapper2Balance).equal(0);
 
       await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH });
 
-      ownerOfInitiatorToken = (await myToken.balanceOf(swapper2Address, 1n)) > 0n;
-      ownerOfAcceptorToken = (await myToken.balanceOf(swapper1Address, 2n)) > 0n;
+      ownerOf1 = await myToken.ownerOf(1n);
+      ownerOf2 = await myToken.ownerOf(2n);
 
-      expect(ownerOfInitiatorToken).true;
-      expect(ownerOfAcceptorToken).true;
+      expect(swapper1Address).equal(ownerOf2);
+      expect(swapper2Address).equal(ownerOf1);
+
+      swapper1Balance = await tokenSwapper.balances(swapper1.address);
+      swapper2Balance = await tokenSwapper.balances(swapper2.address);
+
+      expect(swapper1Balance).equal(GENERIC_SWAP_ETH);
+      expect(swapper2Balance).equal(0);
+    });
+
+    it("Swaps ownership with initiator balance being updated with setApprovalForAll", async function () {
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+
+      let ownerOf1 = await myToken.ownerOf(1n);
+      let ownerOf2 = await myToken.ownerOf(2n);
+      let swapper1Balance = await tokenSwapper.balances(swapper1.address);
+      let swapper2Balance = await tokenSwapper.balances(swapper2.address);
+
+      expect(swapper1Address).equal(ownerOf1);
+      expect(swapper2Address).equal(ownerOf2);
+      expect(swapper1Balance).equal(0);
+      expect(swapper2Balance).equal(0);
+
+      await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH });
+
+      ownerOf1 = await myToken.ownerOf(1n);
+      ownerOf2 = await myToken.ownerOf(2n);
+
+      expect(swapper1Address).equal(ownerOf2);
+      expect(swapper2Address).equal(ownerOf1);
 
       swapper1Balance = await tokenSwapper.balances(swapper1.address);
       swapper2Balance = await tokenSwapper.balances(swapper2.address);
@@ -873,19 +842,19 @@ export function getDefaultSwap(
   swapper2Address: string,
 ): ErcSwap {
   return {
-    expiryDate: BigInt(Math.floor(Date.now() / 1000)) + 66400n,
+    expiryDate: BigInt(Math.floor(Date.now() / 1000)) + 86400n,
     initiatorERCContract: initiatorERCContract,
     acceptorERCContract: acceptorERCContract,
     initiator: swapper1Address,
     initiatorTokenId: 1n,
-    initiatorTokenQuantity: 1n,
+    initiatorTokenQuantity: 0n,
     acceptor: swapper2Address,
     acceptorTokenId: 2n,
-    acceptorTokenQuantity: 1n,
+    acceptorTokenQuantity: 0n,
     initiatorETHPortion: 0n,
     acceptorETHPortion: 0n,
-    initiatorTokenType: 4n,
-    acceptorTokenType: 4n,
+    initiatorTokenType: 3n,
+    acceptorTokenType: 3n,
   };
 }
 

@@ -4,17 +4,22 @@ pragma solidity 0.8.20;
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import { INonCancunSwapTokens } from "./INonCancunSwapTokens.sol";
+import { ISwapTokens } from "./ISwapTokens.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { NonCancunTokenSwapperUtils } from "./NonCancunTokenSwapperUtils.sol";
+
 /**
  * @title A simple Token swapper contract with no fee takers.
  * @author The Dark Jester
  * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
-contract NonCancunTokenSwapper is INonCancunSwapTokens, ReentrancyGuard {
+contract NonCancunTokenSwapper is ISwapTokens, ReentrancyGuard {
   using NonCancunTokenSwapperUtils for *;
+
+  uint256 private constant DEFAULT_IS_SAME_CONTRACT_SWAP = 1;
+  uint256 private constant IS_SAME_CONTRACT_SWAP = 2;
+  uint256 private constant IS_NOT_SAME_CONTRACT_SWAP = 1;
 
   address private constant ZERO_ADDRESS = address(0);
 
@@ -25,6 +30,8 @@ contract NonCancunTokenSwapper is INonCancunSwapTokens, ReentrancyGuard {
   uint256 public swapId = 1;
 
   mapping(uint256 id => bytes32 hashedSwap) public swapHashes;
+
+  uint256 private isSameContractSwap = DEFAULT_IS_SAME_CONTRACT_SWAP;
 
   /// @dev This exists purely to drop the deployment cost by a few hundred gas.
   constructor() payable {}
@@ -152,6 +159,12 @@ contract NonCancunTokenSwapper is INonCancunSwapTokens, ReentrancyGuard {
 
     address realAcceptor = _swap.acceptor == ZERO_ADDRESS ? msg.sender : _swap.acceptor;
 
+    if (_swap.initiatorERCContract == _swap.acceptorERCContract) {
+      isSameContractSwap = IS_SAME_CONTRACT_SWAP;
+    } else {
+      isSameContractSwap = IS_NOT_SAME_CONTRACT_SWAP;
+    }
+
     getTokenTransfer(_swap.initiatorTokenType)(
       _swap.initiatorERCContract,
       _swap.initiatorTokenId,
@@ -167,6 +180,8 @@ contract NonCancunTokenSwapper is INonCancunSwapTokens, ReentrancyGuard {
       realAcceptor,
       _swap.initiator
     );
+
+    isSameContractSwap = DEFAULT_IS_SAME_CONTRACT_SWAP;
   }
 
   /**
@@ -211,7 +226,7 @@ contract NonCancunTokenSwapper is INonCancunSwapTokens, ReentrancyGuard {
 
     emit BalanceWithDrawn(msg.sender, callerBalance);
 
-    bytes4 errorSelector = INonCancunSwapTokens.ETHSendingFailed.selector;
+    bytes4 errorSelector = ISwapTokens.ETHSendingFailed.selector;
     assembly {
       if iszero(call(gas(), caller(), callerBalance, 0, 0, 0, 0)) {
         let ptr := mload(0x40)
@@ -251,6 +266,14 @@ contract NonCancunTokenSwapper is INonCancunSwapTokens, ReentrancyGuard {
       !(swapStatus.initiatorTokenRequiresApproval) &&
       !(swapStatus.acceptorNeedsToOwnToken) &&
       !(swapStatus.acceptorTokenRequiresApproval);
+  }
+
+  /**
+   * @notice Returns whether or not the swap is using the same contract address on both side.
+   * @return returnedIsSameContractSwap The bool indicating if the swap is using the same address.
+   */
+  function isSwappingTokensOnSameContract() external view returns (bool returnedIsSameContractSwap) {
+    return isSameContractSwap == IS_SAME_CONTRACT_SWAP;
   }
 
   /**
@@ -408,7 +431,9 @@ contract NonCancunTokenSwapper is INonCancunSwapTokens, ReentrancyGuard {
     IERC721 erc721Token = IERC721(_tokenAddress);
 
     needsToOwnToken = erc721Token.ownerOf(_tokenId) != _tokenOwner;
-    tokenRequiresApproval = erc721Token.getApproved(_tokenId) != address(this);
+    tokenRequiresApproval =
+      erc721Token.getApproved(_tokenId) != address(this) &&
+      !erc721Token.isApprovedForAll(_tokenOwner, address(this));
   }
 
   /**

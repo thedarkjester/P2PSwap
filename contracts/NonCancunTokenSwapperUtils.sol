@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { INonCancunSwapTokens } from "./INonCancunSwapTokens.sol";
+import { ISwapTokens } from "./ISwapTokens.sol";
 /**
  * @title A helper file for token swapping.
  * @author The Dark Jester
@@ -16,7 +16,7 @@ library NonCancunTokenSwapperUtils {
    * @param _swap The full Swap struct.
    * @return swapHash The hash of the swap.
    */
-  function hashTokenSwap(INonCancunSwapTokens.Swap memory _swap) internal pure returns (bytes32 swapHash) {
+  function hashTokenSwap(ISwapTokens.Swap memory _swap) internal pure returns (bytes32 swapHash) {
     assembly {
       swapHash := keccak256(_swap, 0x1a0)
     }
@@ -29,7 +29,7 @@ library NonCancunTokenSwapperUtils {
    * @param _swap The full Swap struct.
    * @return swapHash The hash of the swap.
    */
-  function hashTokenSwapCalldata(INonCancunSwapTokens.Swap calldata _swap) internal pure returns (bytes32 swapHash) {
+  function hashTokenSwapCalldata(ISwapTokens.Swap calldata _swap) internal pure returns (bytes32 swapHash) {
     assembly {
       let mPtr := mload(0x40)
       calldatacopy(mPtr, _swap, 0x1a0)
