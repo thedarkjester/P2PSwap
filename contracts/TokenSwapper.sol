@@ -146,10 +146,12 @@ contract TokenSwapper is ISwapTokens {
       }
     }
 
+    address realAcceptor = _swap.acceptor == ZERO_ADDRESS ? msg.sender : _swap.acceptor;
+
     if (_swap.initiatorETHPortion > 0) {
       unchecked {
         /// @dev This should never overflow - portion is either zero or a number way less that max uint256.
-        balances[_swap.acceptor] += _swap.initiatorETHPortion;
+        balances[realAcceptor] += _swap.initiatorETHPortion;
       }
     }
 
@@ -159,8 +161,6 @@ contract TokenSwapper is ISwapTokens {
       SAME_CONTRACT_SWAP_TRANSIENT_KEY,
       _swap.acceptorERCContract == _swap.initiatorERCContract
     );
-
-    address realAcceptor = _swap.acceptor == ZERO_ADDRESS ? msg.sender : _swap.acceptor;
 
     getTokenTransfer(_swap.initiatorTokenType)(
       _swap.initiatorERCContract,

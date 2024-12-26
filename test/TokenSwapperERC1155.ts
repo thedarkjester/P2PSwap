@@ -698,6 +698,24 @@ describe("tokenSwapper 1155 testing", function () {
         .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
     });
 
+    it("Increases the acceptor balance on an open swap", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
+
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
+
+      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+
+      expect(await tokenSwapper.balances(swapper2Address)).equal(0n);
+
+      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+        .to.emit(tokenSwapper, "SwapComplete")
+        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+
+      expect(await tokenSwapper.balances(swapper2Address)).equal(GENERIC_SWAP_ETH);
+    });
+
     it("Fails when contract does not have swapper 1 approval", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 

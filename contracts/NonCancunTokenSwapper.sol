@@ -148,16 +148,16 @@ contract NonCancunTokenSwapper is ISwapTokens, ReentrancyGuard {
       }
     }
 
+    address realAcceptor = _swap.acceptor == ZERO_ADDRESS ? msg.sender : _swap.acceptor;
+
     if (_swap.initiatorETHPortion > 0) {
       unchecked {
         /// @dev This should never overflow - portion is either zero or a number way less that max uint256.
-        balances[_swap.acceptor] += _swap.initiatorETHPortion;
+        balances[realAcceptor] += _swap.initiatorETHPortion;
       }
     }
 
     emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
-
-    address realAcceptor = _swap.acceptor == ZERO_ADDRESS ? msg.sender : _swap.acceptor;
 
     if (_swap.initiatorERCContract == _swap.acceptorERCContract) {
       isSameContractSwap = IS_SAME_CONTRACT_SWAP;

@@ -658,6 +658,25 @@ describe("tokenSwapper erc20 testing", function () {
         .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
     });
 
+    it("Completes a swap from anyone and increases acceptor balance", async function () {
+      defaultSwap.acceptor = ethers.ZeroAddress;
+      defaultSwap.acceptorTokenType = 1;
+      defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
+
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
+
+      await erc20A.connect(swapper1).approve(tokenSwapperAddress, 500);
+      await erc20B.connect(swapper2).approve(tokenSwapperAddress, 500);
+
+      expect(await tokenSwapper.balances(swapper2Address)).equal(0n);
+
+      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+        .to.emit(tokenSwapper, "SwapComplete")
+        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+
+      expect(await tokenSwapper.balances(swapper2Address)).equal(GENERIC_SWAP_ETH);
+    });
+
     it("Fails when contract does not have allowance", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
