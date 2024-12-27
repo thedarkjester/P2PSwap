@@ -317,17 +317,11 @@ contract TokenSwapper is ISwapTokens {
   /**
    * @notice Validates ERC721 parameters.
    * @param _ercContract The ERC721 contract.
-   * @param _tokenId The tokenId.
    */
-  function validateERC721SwapParameters(address _ercContract, uint256, uint256 _tokenId, uint256) internal pure {
+  function validateERC721SwapParameters(address _ercContract, uint256, uint256, uint256) internal pure {
     // validate address exists
     if (_ercContract == ZERO_ADDRESS) {
       revert ZeroAddressSetForValidTokenType();
-    }
-
-    // validate _tokenId > 0
-    if (_tokenId == 0) {
-      revert TokenIdMissing();
     }
   }
 
