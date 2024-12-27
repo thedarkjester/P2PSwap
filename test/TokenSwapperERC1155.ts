@@ -185,14 +185,6 @@ describe("tokenSwapper 1155 testing", function () {
       );
     });
 
-    it("Fails with no tokenId", async function () {
-      defaultSwap.initiatorTokenId = 0n;
-      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
-        tokenSwapper,
-        "TokenIdMissing",
-      );
-    });
-
     it("Fails with no amount", async function () {
       defaultSwap.initiatorTokenQuantity = 0n;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.revertedWithCustomError(
@@ -230,6 +222,22 @@ describe("tokenSwapper 1155 testing", function () {
     it("Fails when token type unknown", async function () {
       defaultSwap.acceptorTokenType = 5;
       await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap)).to.be.reverted;
+    });
+
+    it("Initiates with initiatorTokenId=0", async function () {
+      defaultSwap.initiatorTokenId = 0n;
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+      const expectedHash = keccakSwap(defaultSwap);
+
+      expect(await tokenSwapper.swapHashes(1n)).equal(expectedHash);
+    });
+
+    it("Initiates with acceptorTokenId=0", async function () {
+      defaultSwap.acceptorTokenId = 0n;
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+      const expectedHash = keccakSwap(defaultSwap);
+
+      expect(await tokenSwapper.swapHashes(1n)).equal(expectedHash);
     });
 
     it("Initiates with empty acceptor address and ERC1155 set", async function () {
