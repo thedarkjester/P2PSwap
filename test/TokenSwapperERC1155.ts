@@ -871,6 +871,42 @@ describe("tokenSwapper 1155 testing", function () {
       expect(swapper1Balance).equal(GENERIC_SWAP_ETH);
       expect(swapper2Balance).equal(0);
     });
+
+    it("Swaps ownership with initiator balance being updated using tokenId=0", async function () {
+      defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
+      defaultSwap.initiatorTokenId = 0;
+
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await myToken.connect(swapper1).setApprovalForAll(tokenSwapperAddress, true);
+      await myToken.connect(swapper2).setApprovalForAll(tokenSwapperAddress, true);
+
+      let ownerOfInitiatorToken = (await myToken.balanceOf(swapper1Address, 0n)) > 0n;
+      let ownerOfAcceptorToken = (await myToken.balanceOf(swapper2Address, 2n)) > 0n;
+
+      let swapper1Balance = await tokenSwapper.balances(swapper1.address);
+      let swapper2Balance = await tokenSwapper.balances(swapper2.address);
+
+      expect(ownerOfInitiatorToken).true;
+      expect(ownerOfAcceptorToken).true;
+
+      expect(swapper1Balance).equal(0);
+      expect(swapper2Balance).equal(0);
+
+      await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH });
+
+      ownerOfInitiatorToken = (await myToken.balanceOf(swapper2Address, 0n)) > 0n;
+      ownerOfAcceptorToken = (await myToken.balanceOf(swapper1Address, 2n)) > 0n;
+
+      expect(ownerOfInitiatorToken).true;
+      expect(ownerOfAcceptorToken).true;
+
+      swapper1Balance = await tokenSwapper.balances(swapper1.address);
+      swapper2Balance = await tokenSwapper.balances(swapper2.address);
+
+      expect(swapper1Balance).equal(GENERIC_SWAP_ETH);
+      expect(swapper2Balance).equal(0);
+    });
   });
 });
 
