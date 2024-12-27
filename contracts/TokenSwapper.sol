@@ -155,7 +155,7 @@ contract TokenSwapper is ISwapTokens {
       }
     }
 
-    emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
+    emit SwapComplete(_swapId, _swap.initiator, realAcceptor, _swap);
 
     TokenSwapperUtils.storeTransientBool(
       SAME_CONTRACT_SWAP_TRANSIENT_KEY,

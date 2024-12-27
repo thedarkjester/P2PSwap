@@ -310,9 +310,9 @@ describe("tokenSwapper erc20 testing", function () {
     it("Initiates swap and emits SwapInitiated event", async function () {
       defaultSwap.acceptorETHPortion = GENERIC_SWAP_ETH;
 
-      expect(await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap))
+      await expect(tokenSwapper.connect(swapper1).initiateSwap(defaultSwap))
         .to.emit(tokenSwapper, "SwapInitiated")
-        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+        .withArgs(1, swapper1.address, swapper2.address, Object.values(defaultSwap));
     });
 
     it("Increments swap Id and multiple offers are possible", async function () {
@@ -426,7 +426,7 @@ describe("tokenSwapper erc20 testing", function () {
     it("Emits SwapRemoved event", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
-      expect(await tokenSwapper.connect(swapper1).removeSwap(1, defaultSwap))
+      await expect(tokenSwapper.connect(swapper1).removeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapRemoved")
         .withArgs(1, swapper1.address);
     });
@@ -582,9 +582,9 @@ describe("tokenSwapper erc20 testing", function () {
       expect(swapper2ABalance).equal(0n);
       expect(swapper1BBalance).equal(0n);
 
-      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapComplete")
-        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+        .withArgs(1, swapper1.address, swapper2.address, Object.values(defaultSwap));
 
       expect(await erc20A.balanceOf(swapper2Address)).equal(swapper2ABalance);
       expect(await erc20B.balanceOf(swapper1Address)).equal(500n);
@@ -613,9 +613,9 @@ describe("tokenSwapper erc20 testing", function () {
       expect(swapper2ABalance).equal(0n);
       expect(swapper1BBalance).equal(0n);
 
-      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH }))
+      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH }))
         .to.emit(tokenSwapper, "SwapComplete")
-        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+        .withArgs(1, swapper1.address, swapper2.address, Object.values(defaultSwap));
 
       expect(await erc20B.balanceOf(swapper1Address)).equal(swapper1BBalance);
       expect(await erc20A.balanceOf(swapper2Address)).equal(500n);
@@ -627,9 +627,9 @@ describe("tokenSwapper erc20 testing", function () {
       await erc20A.connect(swapper1).approve(tokenSwapperAddress, 500);
       await erc20B.connect(swapper2).approve(tokenSwapperAddress, 500);
 
-      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapComplete")
-        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+        .withArgs(1, swapper1.address, swapper2.address, Object.values(defaultSwap));
     });
 
     it("Emits the SwapComplete event on an open swap", async function () {
@@ -640,9 +640,9 @@ describe("tokenSwapper erc20 testing", function () {
       await erc20A.connect(swapper1).approve(tokenSwapperAddress, 500);
       await erc20B.connect(swapper2).approve(tokenSwapperAddress, 500);
 
-      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapComplete")
-        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+        .withArgs(1, swapper1.address, swapper2.address, Object.values(defaultSwap));
     });
 
     it("Completes a swap from anyone with empty acceptor address in configuration", async function () {
@@ -653,9 +653,9 @@ describe("tokenSwapper erc20 testing", function () {
       await erc20A.connect(swapper1).approve(tokenSwapperAddress, 500);
       await erc20B.connect(swapper2).approve(tokenSwapperAddress, 500);
 
-      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapComplete")
-        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+        .withArgs(1, swapper1.address, swapper2.address, Object.values(defaultSwap));
     });
 
     it("Completes a swap from anyone and increases acceptor balance", async function () {
@@ -670,9 +670,9 @@ describe("tokenSwapper erc20 testing", function () {
 
       expect(await tokenSwapper.balances(swapper2Address)).equal(0n);
 
-      expect(await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
+      await expect(tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap))
         .to.emit(tokenSwapper, "SwapComplete")
-        .withArgs(1, swapper1.address, swapper2.address, defaultSwap);
+        .withArgs(1, swapper1.address, swapper2.address, Object.values(defaultSwap));
 
       expect(await tokenSwapper.balances(swapper2Address)).equal(GENERIC_SWAP_ETH);
     });

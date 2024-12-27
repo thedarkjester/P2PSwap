@@ -157,7 +157,7 @@ contract NonCancunTokenSwapper is ISwapTokens, ReentrancyGuard {
       }
     }
 
-    emit SwapComplete(_swapId, _swap.initiator, _swap.acceptor, _swap);
+    emit SwapComplete(_swapId, _swap.initiator, realAcceptor, _swap);
 
     if (_swap.initiatorERCContract == _swap.acceptorERCContract) {
       isSameContractSwap = IS_SAME_CONTRACT_SWAP;
