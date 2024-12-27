@@ -232,8 +232,18 @@ describe("tokenSwapper 721 testing", function () {
       expect(await tokenSwapper.swapHashes(1n)).equal(expectedHash);
     });
 
-    it("Succeeds with default zero value tokenId set", async function () {
+    it("Succeeds with default zero value tokenId set for initiator", async function () {
       defaultSwap.initiatorTokenId = 0n;
+      defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
+
+      const expectedHash = keccakSwap(defaultSwap);
+
+      expect(await tokenSwapper.swapHashes(1n)).equal(expectedHash);
+    });
+
+    it("Succeeds with default zero value tokenId set for acceptor", async function () {
+      defaultSwap.acceptorTokenId = 0n;
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap, { value: GENERIC_SWAP_ETH });
 
