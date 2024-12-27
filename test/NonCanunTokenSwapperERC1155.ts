@@ -479,7 +479,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(balance).greaterThan(0);
 
       await expect(tokenSwapper.connect(swapper1).withdraw())
-        .to.emit(tokenSwapper, "BalanceWithDrawn")
+        .to.emit(tokenSwapper, "BalanceWithdrawn")
         .withArgs(swapper1Address, balance);
 
       balance = await tokenSwapper.balances(swapper1.address);

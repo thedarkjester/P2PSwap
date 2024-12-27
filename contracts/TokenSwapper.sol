@@ -221,7 +221,7 @@ contract TokenSwapper is ISwapTokens {
 
     delete balances[msg.sender];
 
-    emit BalanceWithDrawn(msg.sender, callerBalance);
+    emit BalanceWithdrawn(msg.sender, callerBalance);
 
     bytes4 errorSelector = ISwapTokens.ETHSendingFailed.selector;
     assembly {

@@ -37,7 +37,7 @@ interface ISwapTokens {
    * @param user The user address withdrawing a balance.
    * @param amount The amount being withdrawn.
    */
-  event BalanceWithDrawn(address indexed user, uint256 amount);
+  event BalanceWithdrawn(address indexed user, uint256 amount);
 
   /**
    * @dev Emitted when a new swap is completed by the acceptor.
