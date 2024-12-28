@@ -138,11 +138,6 @@ interface ISwapTokens {
   /**
    * @dev Thrown when the tokenAddress is zero address but the token or amount is set.
    */
-  error TokenIdMissing();
-
-  /**
-   * @dev Thrown when the tokenAddress is zero address but the token or amount is set.
-   */
   error TokenQuantityMissing();
 
   /**

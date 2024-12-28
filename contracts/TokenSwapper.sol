@@ -73,7 +73,6 @@ contract TokenSwapper is ISwapTokens {
     getTokenTypeValidator(_swap.initiatorTokenType)(
       _swap.initiatorERCContract,
       _swap.initiatorETHPortion,
-      _swap.initiatorTokenId,
       _swap.initiatorTokenQuantity
     );
 
@@ -86,7 +85,6 @@ contract TokenSwapper is ISwapTokens {
     getTokenTypeValidator(_swap.acceptorTokenType)(
       _swap.acceptorERCContract,
       _swap.acceptorETHPortion,
-      _swap.acceptorTokenId,
       _swap.acceptorTokenQuantity
     );
 
@@ -276,12 +274,13 @@ contract TokenSwapper is ISwapTokens {
 
   /**
    * @notice Returns dynamic token type validator.
+   * @dev We don't care about tokenId being zero anywhere because 721s and 1155s can have id==0.
    * @param _tokenType The token type to return.
    * @return The parameter validator for the token type.
    */
   function getTokenTypeValidator(
     TokenType _tokenType
-  ) internal pure returns (function(address, uint256, uint256, uint256) internal pure) {
+  ) internal pure returns (function(address, uint256, uint256) internal pure) {
     if (_tokenType == TokenType.ERC721) {
       return validateERC721SwapParameters;
     }
@@ -302,7 +301,7 @@ contract TokenSwapper is ISwapTokens {
    * @param _ercContract The ERC20 contract.
    * @param _tokenQuantity The token quantity.
    */
-  function validateERC20SwapParameters(address _ercContract, uint256, uint256, uint256 _tokenQuantity) internal pure {
+  function validateERC20SwapParameters(address _ercContract, uint256, uint256 _tokenQuantity) internal pure {
     // validate address exists
     if (_ercContract == ZERO_ADDRESS) {
       revert ZeroAddressSetForValidTokenType();
@@ -317,40 +316,23 @@ contract TokenSwapper is ISwapTokens {
   /**
    * @notice Validates ERC721 parameters.
    * @param _ercContract The ERC721 contract.
-   * @param _tokenId The tokenId.
    */
-  function validateERC721SwapParameters(address _ercContract, uint256, uint256 _tokenId, uint256) internal pure {
+  function validateERC721SwapParameters(address _ercContract, uint256, uint256) internal pure {
     // validate address exists
     if (_ercContract == ZERO_ADDRESS) {
       revert ZeroAddressSetForValidTokenType();
-    }
-
-    // validate _tokenId > 0
-    if (_tokenId == 0) {
-      revert TokenIdMissing();
     }
   }
 
   /**
    * @notice Validates ERC1155 parameters.
    * @param _ercContract The ERC1155 contract.
-   * @param _tokenId The tokenId.
    * @param _tokenQuantity The tokenId.
    */
-  function validateERC1155SwapParameters(
-    address _ercContract,
-    uint256,
-    uint256 _tokenId,
-    uint256 _tokenQuantity
-  ) internal pure {
+  function validateERC1155SwapParameters(address _ercContract, uint256, uint256 _tokenQuantity) internal pure {
     // validate address exists
     if (_ercContract == ZERO_ADDRESS) {
       revert ZeroAddressSetForValidTokenType();
-    }
-
-    // validate _tokenId > 0
-    if (_tokenId == 0) {
-      revert TokenIdMissing();
     }
 
     // validate quantity > 0
@@ -363,7 +345,7 @@ contract TokenSwapper is ISwapTokens {
    * @notice Validates token type none parameters.
    * @param _ethPortion The ETH portion of the side of the swap.
    */
-  function validateNoTokenTypeSwapParameters(address, uint256 _ethPortion, uint256, uint256) internal pure {
+  function validateNoTokenTypeSwapParameters(address, uint256 _ethPortion, uint256) internal pure {
     if (_ethPortion == 0) {
       revert ValueOrTokenMissing();
     }
