@@ -3,7 +3,7 @@ pragma solidity >=0.8.20 <=0.8.26;
 
 import { ISwapTokens } from "./ISwapTokens.sol";
 /**
- * @title A helper file for token swapping.
+ * @title A helper file for token swapping hashing.
  * @author The Dark Jester
  * @notice You can use this contract for multi-token swaps.
  */
@@ -16,7 +16,7 @@ library SwapHashing {
    * @param _swap The full Swap struct.
    * @return swapHash The hash of the swap.
    */
-  function hashTokenSwap(ISwapTokens.Swap memory _swap) internal pure returns (bytes32 swapHash) {
+  function _hashTokenSwap(ISwapTokens.Swap memory _swap) internal pure returns (bytes32 swapHash) {
     assembly {
       swapHash := keccak256(_swap, 0x1a0)
     }
@@ -29,7 +29,7 @@ library SwapHashing {
    * @param _swap The full Swap struct.
    * @return swapHash The hash of the swap.
    */
-  function hashTokenSwapCalldata(ISwapTokens.Swap calldata _swap) internal pure returns (bytes32 swapHash) {
+  function _hashTokenSwapCalldata(ISwapTokens.Swap calldata _swap) internal pure returns (bytes32 swapHash) {
     assembly {
       let mPtr := mload(0x40)
       calldatacopy(mPtr, _swap, 0x1a0)
