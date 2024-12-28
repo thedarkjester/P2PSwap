@@ -7,7 +7,8 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { ISwapTokens } from "./ISwapTokens.sol";
-import { TokenSwapperUtils } from "./TokenSwapperUtils.sol";
+import { TransientStorage } from "./TransientStorage.sol";
+import { SwapHashing } from "./SwapHashing.sol";
 
 /**
  * @title A simple Token swapper contract with no fee takers.
@@ -21,7 +22,8 @@ contract TokenSwapper is ISwapTokens {
 
   bytes32 private constant REENTRY_TRANSIENT_KEY = bytes32(uint256(keccak256("eip1967.reentry.transient.key")) - 1);
 
-  using TokenSwapperUtils for *;
+  using TransientStorage for *;
+  using SwapHashing for *;
 
   address private constant ZERO_ADDRESS = address(0);
 
@@ -102,7 +104,7 @@ contract TokenSwapper is ISwapTokens {
       // _swap emitted to pass in later when querying, completing or removing
       emit SwapInitiated(newSwapId, msg.sender, _swap.acceptor, _swap);
 
-      swapHashes[newSwapId] = TokenSwapperUtils.hashTokenSwap(_swap);
+      swapHashes[newSwapId] = SwapHashing.hashTokenSwap(_swap);
     }
   }
 
@@ -119,7 +121,7 @@ contract TokenSwapper is ISwapTokens {
       revert SwapHasExpired();
     }
 
-    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != SwapHashing.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -157,7 +159,7 @@ contract TokenSwapper is ISwapTokens {
 
     emit SwapComplete(_swapId, _swap.initiator, realAcceptor, _swap);
 
-    TokenSwapperUtils.storeTransientBool(
+    TransientStorage.storeTransientBool(
       SAME_CONTRACT_SWAP_TRANSIENT_KEY,
       _swap.acceptorERCContract == _swap.initiatorERCContract
     );
@@ -178,7 +180,7 @@ contract TokenSwapper is ISwapTokens {
       _swap.initiator
     );
 
-    TokenSwapperUtils.wipeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
+    TransientStorage.wipeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
   }
 
   /**
@@ -188,7 +190,7 @@ contract TokenSwapper is ISwapTokens {
    * @param _swapId The ID of the swap.
    */
   function removeSwap(uint256 _swapId, Swap calldata _swap) external nonReentrant {
-    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwapCalldata(_swap)) {
+    if (swapHashes[_swapId] != SwapHashing.hashTokenSwapCalldata(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -241,7 +243,7 @@ contract TokenSwapper is ISwapTokens {
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
   function getSwapStatus(uint256 _swapId, Swap memory _swap) external view returns (SwapStatus memory swapStatus) {
-    if (swapHashes[_swapId] != TokenSwapperUtils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != SwapHashing.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -271,7 +273,7 @@ contract TokenSwapper is ISwapTokens {
    * @return isSameContractSwap The bool indicating if the swap is using the same address.
    */
   function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap) {
-    isSameContractSwap = TokenSwapperUtils.loadTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
+    isSameContractSwap = TransientStorage.loadTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
   }
 
   /**
@@ -534,13 +536,13 @@ contract TokenSwapper is ISwapTokens {
   function noneTransferer(address, uint256, uint256, address, address) internal pure {}
 
   modifier nonReentrant() {
-    if (TokenSwapperUtils.loadTransientBool(REENTRY_TRANSIENT_KEY)) {
+    if (TransientStorage.loadTransientBool(REENTRY_TRANSIENT_KEY)) {
       revert NoReentry();
     }
 
-    TokenSwapperUtils.storeTransientBool(REENTRY_TRANSIENT_KEY, true);
+    TransientStorage.storeTransientBool(REENTRY_TRANSIENT_KEY, true);
     _;
-    TokenSwapperUtils.wipeTransientBool(REENTRY_TRANSIENT_KEY);
+    TransientStorage.wipeTransientBool(REENTRY_TRANSIENT_KEY);
   }
 }
 

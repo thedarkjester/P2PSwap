@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity >=0.8.20 <=0.8.26;
 
 import { ISwapTokens } from "./ISwapTokens.sol";
 /**
@@ -8,7 +8,7 @@ import { ISwapTokens } from "./ISwapTokens.sol";
  * @notice You can use this contract for multi-token swaps.
  */
 
-library NonCancunTokenSwapperUtils {
+library SwapHashing {
   /**
    * @notice Gas efficient swap hashing using inline assembly with memory.
    * @dev There are 13 items in the struct, each using 32 bytes in memory when used,
