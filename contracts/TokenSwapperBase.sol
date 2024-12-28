@@ -3,6 +3,7 @@ pragma solidity >=0.8.20 <=0.8.26;
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { ISwapTokens } from "./ISwapTokens.sol";
 import { SwapHashing } from "./SwapHashing.sol";
@@ -464,9 +465,7 @@ abstract contract TokenSwapperBase is ISwapTokens {
     address _tokenOwner,
     address _recipient
   ) internal {
-    if (!IERC20(_tokenAddress).transferFrom(_tokenOwner, _recipient, _tokenQuantity)) {
-      revert ISwapTokens.TokenTransferFailed(_tokenAddress, _tokenQuantity);
-    }
+    SafeERC20.safeTransferFrom(IERC20(_tokenAddress), _tokenOwner, _recipient, _tokenQuantity);
   }
 
   /**
