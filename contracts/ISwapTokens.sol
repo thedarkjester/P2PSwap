@@ -167,11 +167,6 @@ interface ISwapTokens {
   error SwapIsInThePast();
 
   /**
-   * @dev Thrown when the token transfer failed.
-   */
-  error TokenTransferFailed(address tokenAddress, uint256);
-
-  /**
    * @dev Thrown when the initiator in the config does not match the msg.sender.
    * @param expected The expected initiator address.
    * @param actual The actual initiator address (msg.sender).

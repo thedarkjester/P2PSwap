@@ -877,8 +877,8 @@ describe("tokenSwapper erc20 testing", function () {
       await erc20B.connect(swapper2).approve(tokenSwapperAddress, 500n);
 
       await expect(tokenSwapper.connect(denyListedAccount).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH }))
-        .to.be.revertedWithCustomError(tokenSwapper, "TokenTransferFailed")
-        .withArgs(erc20BAddress, 500n);
+        .to.be.revertedWithCustomError(tokenSwapper, "SafeERC20FailedOperation")
+        .withArgs(erc20BAddress);
     });
   });
 });
