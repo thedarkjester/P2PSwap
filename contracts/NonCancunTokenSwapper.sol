@@ -6,7 +6,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { ISwapTokens } from "./ISwapTokens.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { NonCancunTokenSwapperUtils } from "./NonCancunTokenSwapperUtils.sol";
+import { SwapHashing } from "./SwapHashing.sol";
 
 /**
  * @title A simple Token swapper contract with no fee takers.
@@ -15,7 +15,7 @@ import { NonCancunTokenSwapperUtils } from "./NonCancunTokenSwapperUtils.sol";
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
 contract NonCancunTokenSwapper is ISwapTokens, ReentrancyGuard {
-  using NonCancunTokenSwapperUtils for *;
+  using SwapHashing for *;
 
   uint256 private constant DEFAULT_IS_SAME_CONTRACT_SWAP = 1;
   uint256 private constant IS_SAME_CONTRACT_SWAP = 2;
@@ -102,7 +102,7 @@ contract NonCancunTokenSwapper is ISwapTokens, ReentrancyGuard {
       // _swap emitted to pass in later when querying, completing or removing
       emit SwapInitiated(newSwapId, msg.sender, _swap.acceptor, _swap);
 
-      swapHashes[newSwapId] = NonCancunTokenSwapperUtils.hashTokenSwap(_swap);
+      swapHashes[newSwapId] = SwapHashing.hashTokenSwap(_swap);
     }
   }
 
@@ -119,7 +119,7 @@ contract NonCancunTokenSwapper is ISwapTokens, ReentrancyGuard {
       revert SwapHasExpired();
     }
 
-    if (swapHashes[_swapId] != NonCancunTokenSwapperUtils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != SwapHashing.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -189,7 +189,7 @@ contract NonCancunTokenSwapper is ISwapTokens, ReentrancyGuard {
    * @param _swapId The ID of the swap.
    */
   function removeSwap(uint256 _swapId, Swap calldata _swap) external nonReentrant {
-    if (swapHashes[_swapId] != NonCancunTokenSwapperUtils.hashTokenSwapCalldata(_swap)) {
+    if (swapHashes[_swapId] != SwapHashing.hashTokenSwapCalldata(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
@@ -241,7 +241,7 @@ contract NonCancunTokenSwapper is ISwapTokens, ReentrancyGuard {
    * @return swapStatus The checked ownership and permissions struct for both parties's NFTs.
    */
   function getSwapStatus(uint256 _swapId, Swap memory _swap) external view returns (SwapStatus memory swapStatus) {
-    if (swapHashes[_swapId] != NonCancunTokenSwapperUtils.hashTokenSwap(_swap)) {
+    if (swapHashes[_swapId] != SwapHashing.hashTokenSwap(_swap)) {
       revert SwapCompleteOrDoesNotExist();
     }
 
