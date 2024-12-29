@@ -20,18 +20,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          viaIR: false,
-          evmVersion: "cancun",
-        },
-      },
-      {
-        version: "0.8.24",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          viaIR: false,
+          viaIR: true,
           evmVersion: "cancun",
         },
       },
@@ -42,7 +31,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          viaIR: false,
+          viaIR: true,
           evmVersion: "london",
         },
       },
