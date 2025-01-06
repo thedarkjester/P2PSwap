@@ -4,7 +4,7 @@
 
 ### Previous versions:
 
-**NB:** *The deploy at 0x5343B7751483F60714Dc237d88f796b8023b529E has been replaced as it didn't support USDT, NFTs with id=0, and has a potential issue on open swaps where ETH was allocated incorrectly* It still is connected to [p2pswap.eth.limo](https://p2pswap.eth.limo) and will be replaced shortly - this documentation will be updated when applied.
+**NB:** *The deploy at 0x5343B7751483F60714Dc237d88f796b8023b529E has been replaced as it didn't support USDT, NFTs with id=0, and has a potential issue on open swaps where ETH was allocated incorrectly*
 
 ### Current version:
 If you wish to use the currently deployed app with the new features:
