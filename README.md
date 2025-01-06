@@ -9,6 +9,7 @@
 ### Current version:
 If you wish to use the currently deployed app with the new features:
 [p2pswap.app](https://p2pswap.app)
+[p2pswap.eth.limo](https://p2pswap.eth.limo)
 
 Verified contracts on Etherscan - 
 Ethereum Sepolia:
