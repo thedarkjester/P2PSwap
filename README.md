@@ -171,6 +171,7 @@ What this all means is that anyone can accept the swap provided they fit the cri
   - Of course, by all means go for it. Please keep attribution and pay attention to note 1 below.
 
 ## Notes for the Devs
+Foundry is required: Please install with [https://getfoundry.sh/](https://getfoundry.sh/) - feel free to submit PRs for the Foundry tests.
 
 1. A Cancun upgrade version is the default implementation and uses `transient storage`. If deploying on another chain, see the [NonCancunTokenSwapper](./contracts/NonCancunTokenSwapper.sol) file.
 

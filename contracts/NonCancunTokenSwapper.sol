@@ -63,10 +63,10 @@ contract NonCancunTokenSwapper is ReentrancyGuard, TokenSwapperBase {
 
   /**
    * @notice Retrieves the isSameContractSwap value that is temporarily set.
-   * @return isSameContractSwap If tokens are swapped between two parties on the same contract.
+   * @return returnedIsSameContractSwap If tokens are swapped between two parties on the same contract.
    */
   function isSwappingTokensOnSameContract() external view returns (bool returnedIsSameContractSwap) {
-    return isSameContractSwap == IS_SAME_CONTRACT_SWAP;
+    returnedIsSameContractSwap = isSameContractSwap == IS_SAME_CONTRACT_SWAP;
   }
 }
 
