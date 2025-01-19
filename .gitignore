@@ -2,6 +2,9 @@ node_modules/
 
 build
 cache
+lib/forge-std/
+cache_forge
+out
 
 # VS Code files for those working on multiple tools
 .vscode/*

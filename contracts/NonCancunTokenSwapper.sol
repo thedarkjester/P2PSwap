@@ -12,7 +12,7 @@ import { TokenSwapperBase } from "./TokenSwapperBase.sol";
 /**
  * @title A simple Token swapper contract with no fee takers.
  * @author The Dark Jester
- * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
+ * @notice You can use this contract for ERC721(A), ERC1155, (x)ERC20 or ERC777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
  */
 contract NonCancunTokenSwapper is ReentrancyGuard, TokenSwapperBase {
@@ -62,11 +62,11 @@ contract NonCancunTokenSwapper is ReentrancyGuard, TokenSwapperBase {
   }
 
   /**
-   * @notice Returns whether or not the swap is using the same contract address on both side.
-   * @return returnedIsSameContractSwap The bool indicating if the swap is using the same address.
+   * @notice Retrieves the isSameContractSwap value that is temporarily set.
+   * @return returnedIsSameContractSwap If tokens are swapped between two parties on the same contract.
    */
   function isSwappingTokensOnSameContract() external view returns (bool returnedIsSameContractSwap) {
-    return isSameContractSwap == IS_SAME_CONTRACT_SWAP;
+    returnedIsSameContractSwap = isSameContractSwap == IS_SAME_CONTRACT_SWAP;
   }
 }
 

@@ -72,8 +72,8 @@ contract TokenSwapper is TokenSwapperBase {
   }
 
   /**
-   * @notice Returns whether or not the swap is using the same contract address on both side.
-   * @return isSameContractSwap The bool indicating if the swap is using the same address.
+   * @notice Retrieves the isSameContractSwap value that is temporarily set.
+   * @return isSameContractSwap If tokens are swapped between two parties on the same contract.
    */
   function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap) {
     isSameContractSwap = TransientStorage._loadTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
