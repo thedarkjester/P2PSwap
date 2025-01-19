@@ -4,13 +4,14 @@ pragma solidity >=0.8.20 <=0.8.26;
 /**
  * @title A simple Token swapper contract with no fee takers.
  * @author The Dark Jester
- * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
+ * @notice You can use this contract for ERC721(A), ERC1155, (x)ERC20 or ERC777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
+ * @custom:security-contact security-report@linea.build
  */
 interface ISwapTokens {
   enum TokenType {
     NONE,
-    ERC20, // xERC20, ERC777 really as well
+    ERC20,
     ERC777,
     ERC721,
     ERC1155
@@ -80,12 +81,12 @@ interface ISwapTokens {
   }
 
   /**
-   * @dev initiatorNeedsToOwnToken is the boolean indicating if the initiator owns the token.
-   * @dev acceptorNeedsToOwnToken is the boolean indicating if the acceptor owns the token.
-   * @dev initiatorTokenRequiresApproval is the boolean indicating if the initiator has approved the swap contract for the NFT.
-   * @dev acceptorTokenRequiresApproval is the boolean indicating if the accepor has approved the swap contract for the NFT.
+   * @dev initiatorNeedsToOwnToken is the boolean indicating if the initiator needs to own the token.
+   * @dev acceptorNeedsToOwnToken is the boolean indicating if the acceptor needs to own the token.
+   * @dev initiatorTokenRequiresApproval is the boolean indicating if the initiator needs to approve the swap contract.
+   * @dev acceptorTokenRequiresApproval is the boolean indicating if the acceptor needs to approve the swap contract.
    * @dev isReadyForSwapping a bool indicating if the swap is ready.
-   * @dev all have to be true for the swap to work.
+   * @dev The first four have to be false for isReadyForSwapping to be true in order for the swap to work.
    */
   struct SwapStatus {
     bool initiatorNeedsToOwnToken;
@@ -116,7 +117,7 @@ interface ISwapTokens {
   error EmptyWithdrawDisallowed();
 
   /**
-   * @dev Thrown when the swap completor is not the acceptor account.
+   * @dev Thrown when the swap completer is not the acceptor account.
    */
   error NotAcceptor();
 
@@ -152,7 +153,7 @@ interface ISwapTokens {
   error ETHSendingFailed();
 
   /**
-   * @dev Thrown when reentrancy.
+   * @dev Thrown on disallowed reentrancy.
    */
   error NoReentry();
 
@@ -185,8 +186,7 @@ interface ISwapTokens {
    * @dev The expiryDate only checks for the past and is user/dev dependant on how long a swap should be valid for.
    * @dev If ETH is sent, it is used as the initiator ETH portion.
    * @dev NB: Some invariant conditions:
-   * @dev msg.sender is validated to be the initiator, and,
-   * This is deliberate so that nobody and do it without you knowing.
+   * @dev msg.sender is validated to be the initiator.
    * @dev msg.value must match the _swap.initiatorETHPortion to avoid sneaky exploits.
    * @param _swap The full swap details.
    */
@@ -218,7 +218,7 @@ interface ISwapTokens {
   function withdraw() external;
 
   /**
-   * @notice Retrieves the isSameContractSwap in transient storage.
+   * @notice Retrieves the isSameContractSwap value that is temporarily set.
    * @return isSameContractSwap If tokens are swapped between two parties on the same contract.
    */
   function isSwappingTokensOnSameContract() external view returns (bool isSameContractSwap);

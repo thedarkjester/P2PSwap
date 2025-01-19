@@ -30,8 +30,7 @@ abstract contract TokenSwapperBase is ISwapTokens {
    * @dev The expiryDate only checks for the past and is user/dev dependant on how long a swap should be valid for.
    * @dev If ETH is sent, it is used as the initiator ETH portion.
    * @dev NB: Some invariant conditions:
-   * @dev msg.sender is validated to be the initiator, and,
-   * This is deliberate so that nobody and do it without you knowing.
+   * @dev msg.sender is validated to be the initiator.
    * @dev msg.value must match the _swap.initiatorETHPortion to avoid sneaky exploits.
    * @param _swap The full swap details.
    */
