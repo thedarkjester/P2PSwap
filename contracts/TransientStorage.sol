@@ -21,14 +21,6 @@ library TransientStorage {
   }
 
   /**
-   * @notice Resets a transient bool to default.
-   * @param _key The key for the storage.
-   */
-  function _wipeTransientBool(bytes32 _key) internal {
-    _storeTransientBool(_key, false);
-  }
-
-  /**
    * @notice Loads a transient bool's value by key.
    * @param _key The key for the storage.
    * @return boolValue The value to return.
