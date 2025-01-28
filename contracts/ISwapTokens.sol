@@ -34,11 +34,11 @@ interface ISwapTokens {
   event SwapRemoved(uint256 indexed swapId, address indexed initiator);
 
   /**
-   * @dev Emitted when a a user withdraws their balance.
-   * @param user The user address withdrawing a balance.
-   * @param amount The amount being withdrawn.
+   * @dev Emitted when a user has been transferred an ETH Portion.
+   * @param user The user address being transferred to.
+   * @param amount The amount being transferred.
    */
-  event BalanceWithdrawn(address indexed user, uint256 amount);
+  event EthPortionTransferred(address indexed user, uint256 amount);
 
   /**
    * @dev Emitted when a new swap is completed by the acceptor.
@@ -210,12 +210,6 @@ interface ISwapTokens {
    * @param _swap The full swap data as retrieved from the initiating event.
    */
   function removeSwap(uint256 _swapId, Swap calldata _swap) external;
-
-  /**
-   * @notice Withdraws the msg.sender's balance if it exists.
-   * @dev The ETH balance is sent to the msg.sender.
-   */
-  function withdraw() external;
 
   /**
    * @notice Retrieves the isSameContractSwap value that is temporarily set.
