@@ -563,6 +563,20 @@ describe("tokenSwapper 721 testing", function () {
       );
     });
 
+    it("Succeeds if timestamp matches exactly (same block effectively)", async function () {
+      await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
+
+      await myToken.connect(swapper1).approve(tokenSwapperAddress, 1);
+      await myToken.connect(swapper2).approve(tokenSwapperAddress, 2);
+
+      // set the same block timestamp essentially mimicking an in bundle/block swap managed through a contract
+      await networkTime.setNextBlockTimestamp(defaultSwap.expiryDate);
+      await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap);
+
+      const swapHash = await tokenSwapper.swapHashes(1n);
+      expect(swapHash).equal(ethers.ZeroHash);
+    });
+
     it("Resets swap to default values", async function () {
       await tokenSwapper.connect(swapper1).initiateSwap(defaultSwap);
 
