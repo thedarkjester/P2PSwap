@@ -34,7 +34,6 @@ library SwapHashing {
       let mPtr := mload(0x40)
       calldatacopy(mPtr, _swap, 0x1a0)
       swapHash := keccak256(mPtr, 0x1a0)
-      mstore(0x40, add(mPtr, 0x1a0))
     }
   }
 }
