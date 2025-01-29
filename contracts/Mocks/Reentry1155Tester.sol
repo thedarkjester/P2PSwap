@@ -130,11 +130,6 @@ contract Reentry1155Tester is IERC1155Receiver {
     return interfaceID == IERC1155Receiver.onERC1155Received.selector;
   }
 
-  function withdraw(address _swapperAddress) external {
-    ISwapTokens swapper = ISwapTokens(_swapperAddress);
-    swapper.withdraw();
-  }
-
   function approveToken(address _nftContractAddress, address _swapperAddress) external {
     IERC1155 nftContract = IERC1155(_nftContractAddress);
     nftContract.setApprovalForAll(_swapperAddress, true);
@@ -167,7 +162,5 @@ contract Reentry1155Tester is IERC1155Receiver {
   }
 
   receive() external payable {
-    ISwapTokens swapper = ISwapTokens(msg.sender);
-    swapper.withdraw();
   }
 }
