@@ -653,7 +653,6 @@ describe("tokenSwapper erc20 testing", function () {
       swapper2ABalance = await erc20A.balanceOf(swapper2Address);
       swapper1BBalance = await erc20B.balanceOf(swapper1Address);
 
-      
       expect(swapper2ABalance).equal(500n);
       expect(swapper1BBalance).equal(500n);
 

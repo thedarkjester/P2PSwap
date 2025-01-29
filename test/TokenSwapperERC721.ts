@@ -618,7 +618,7 @@ describe("tokenSwapper 721 testing", function () {
       expect(swapper1Address).equal(ownerOf2);
       expect(swapper2Address).equal(ownerOf1);
 
-      const balanceAfter= await ethers.provider.getBalance(swapper2Address);
+      const balanceAfter = await ethers.provider.getBalance(swapper2Address);
       expect(balanceAfter).greaterThanOrEqual(balanceBefore);
     });
 

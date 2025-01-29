@@ -431,7 +431,6 @@ describe("tokenSwapper erc20 testing", function () {
         .withArgs(1, swapper1.address);
     });
 
-
     it("Increases the initiator balance if ETH Portion sent", async function () {
       defaultSwap.initiatorETHPortion = GENERIC_SWAP_ETH;
 
@@ -654,7 +653,6 @@ describe("tokenSwapper erc20 testing", function () {
       swapper2ABalance = await erc20A.balanceOf(swapper2Address);
       swapper1BBalance = await erc20B.balanceOf(swapper1Address);
 
-      
       expect(swapper2ABalance).equal(500n);
       expect(swapper1BBalance).equal(500n);
 

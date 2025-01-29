@@ -86,6 +86,5 @@ contract ReentryTester is IERC721Receiver {
     swapperAddress = _swapperAddress;
   }
 
-  receive() external payable {
-  }
+  receive() external payable {}
 }

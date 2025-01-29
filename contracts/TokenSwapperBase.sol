@@ -161,7 +161,6 @@ abstract contract TokenSwapperBase is ISwapTokens {
    * @param _amount The amount to send.
    */
   function _sendEthPortion(address _destination, uint256 _amount) internal {
-
     emit EthPortionTransferred(_destination, _amount);
 
     payable(_destination).sendValue(_amount);

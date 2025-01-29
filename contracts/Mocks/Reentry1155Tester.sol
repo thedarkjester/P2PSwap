@@ -161,6 +161,5 @@ contract Reentry1155Tester is IERC1155Receiver {
     swapperAddress = _swapperAddress;
   }
 
-  receive() external payable {
-  }
+  receive() external payable {}
 }

@@ -693,7 +693,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(ownerOfInitiatorToken).true;
       expect(ownerOfAcceptorToken).true;
 
-      const balanceBefore= await ethers.provider.getBalance(swapper2Address);
+      const balanceBefore = await ethers.provider.getBalance(swapper2Address);
       await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap);
 
       ownerOfInitiatorToken = (await myToken.balanceOf(swapper2Address, 1n)) > 0n;
@@ -702,7 +702,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(ownerOfInitiatorToken).true;
       expect(ownerOfAcceptorToken).true;
 
-      const balanceAfter= await ethers.provider.getBalance(swapper2Address);
+      const balanceAfter = await ethers.provider.getBalance(swapper2Address);
       expect(balanceAfter).greaterThanOrEqual(balanceBefore);
     });
 
@@ -720,7 +720,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(ownerOfInitiatorToken).true;
       expect(ownerOfAcceptorToken).true;
 
-      const balanceBefore= await ethers.provider.getBalance(swapper1Address);
+      const balanceBefore = await ethers.provider.getBalance(swapper1Address);
       await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH });
 
       ownerOfInitiatorToken = (await myToken.balanceOf(swapper2Address, 1n)) > 0n;
@@ -729,7 +729,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(ownerOfInitiatorToken).true;
       expect(ownerOfAcceptorToken).true;
 
-      const balanceAfter= await ethers.provider.getBalance(swapper1Address);
+      const balanceAfter = await ethers.provider.getBalance(swapper1Address);
       expect(balanceAfter).greaterThanOrEqual(balanceBefore);
     });
 
@@ -748,7 +748,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(ownerOfInitiatorToken).true;
       expect(ownerOfAcceptorToken).true;
 
-      const balanceBefore= await ethers.provider.getBalance(swapper1Address);
+      const balanceBefore = await ethers.provider.getBalance(swapper1Address);
 
       await tokenSwapper.connect(swapper2).completeSwap(1, defaultSwap, { value: GENERIC_SWAP_ETH });
 
@@ -758,7 +758,7 @@ describe("tokenSwapper 1155 testing", function () {
       expect(ownerOfInitiatorToken).true;
       expect(ownerOfAcceptorToken).true;
 
-      const balanceAfter= await ethers.provider.getBalance(swapper1Address);
+      const balanceAfter = await ethers.provider.getBalance(swapper1Address);
       expect(balanceAfter).greaterThanOrEqual(balanceBefore);
     });
   });
