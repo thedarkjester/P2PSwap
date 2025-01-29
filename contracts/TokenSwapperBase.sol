@@ -176,7 +176,7 @@ abstract contract TokenSwapperBase is ISwapTokens {
    * @param _swap The swap data to use and verify.
    */
   function _completeSwap(uint256 _swapId, Swap memory _swap) internal {
-    if (block.timestamp >= _swap.expiryDate) {
+    if (block.timestamp > _swap.expiryDate) {
       revert SwapHasExpired();
     }
 
