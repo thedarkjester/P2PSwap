@@ -4,9 +4,9 @@ pragma solidity >=0.8.20 <=0.8.26;
 /**
  * @title A simple Token swapper contract with no fee takers.
  * @author The Dark Jester
- * @notice You can use this contract for ERC721(A), ERC1155, (x)ERC20 or ERC777 swaps where one party can set up a deal and the other accept.
+ * @notice You can use this contract for ERC-721(A), ERC-1155, (x)ERC-20 or ERC-777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
- * @custom:security-contact security-report@linea.build
+ * @custom:security-contact https://github.com/thedarkjester/P2PSwap/security/advisories/new
  */
 interface ISwapTokens {
   enum TokenType {

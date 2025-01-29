@@ -11,8 +11,9 @@ import { SwapHashing } from "./SwapHashing.sol";
 /**
  * @title A simple Token swapper base contract with no fee takers.
  * @author The Dark Jester
- * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
+ * @notice You can use this contract for ERC-721,ERC-1155,ERC-20, xERC-20, ERC-777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
+ * @custom:security-contact https://github.com/thedarkjester/P2PSwap/security/advisories/new
  */
 abstract contract TokenSwapperBase is ISwapTokens {
   address internal constant ZERO_ADDRESS = address(0);

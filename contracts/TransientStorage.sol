@@ -6,6 +6,7 @@ import { ISwapTokens } from "./ISwapTokens.sol";
  * @title A helper file for token swapping transient storage.
  * @author The Dark Jester
  * @notice You can use this contract for multi-token swaps.
+ * @custom:security-contact https://github.com/thedarkjester/P2PSwap/security/advisories/new
  */
 
 library TransientStorage {
