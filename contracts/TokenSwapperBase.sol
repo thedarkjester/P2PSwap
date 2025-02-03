@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.20 <=0.8.26;
 
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -11,14 +12,14 @@ import { SwapHashing } from "./SwapHashing.sol";
 /**
  * @title A simple Token swapper base contract with no fee takers.
  * @author The Dark Jester
- * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
+ * @notice You can use this contract for ERC-721,ERC-1155,ERC-20, xERC-20, ERC-777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
+ * @custom:security-contact https://github.com/thedarkjester/P2PSwap/security/advisories/new
  */
 abstract contract TokenSwapperBase is ISwapTokens {
-  address internal constant ZERO_ADDRESS = address(0);
+  using Address for *;
 
-  // user account => balance
-  mapping(address userAddress => uint256 balance) public balances;
+  address internal constant ZERO_ADDRESS = address(0);
 
   // Deployer pays for the slot vs. the first swapper. Being kind.
   uint256 public swapId = 1;
@@ -95,31 +96,6 @@ abstract contract TokenSwapperBase is ISwapTokens {
   }
 
   /**
-   * @notice Withdraws the msg.sender's balance if it exists.
-   * @dev The ETH balance is sent to the msg.sender.
-   */
-  function withdraw() external {
-    uint256 callerBalance = balances[msg.sender];
-
-    if (callerBalance == 0) {
-      revert EmptyWithdrawDisallowed();
-    }
-
-    delete balances[msg.sender];
-
-    emit BalanceWithdrawn(msg.sender, callerBalance);
-
-    bytes4 errorSelector = ISwapTokens.ETHSendingFailed.selector;
-    assembly {
-      if iszero(call(gas(), caller(), callerBalance, 0, 0, 0, 0)) {
-        let ptr := mload(0x40)
-        mstore(ptr, errorSelector)
-        revert(ptr, 0x4)
-      }
-    }
-  }
-
-  /**
    * @notice Retrieves the Swap status.
    * @param _swapId The ID of the swap.
    * @param _swap The swap details.
@@ -172,13 +148,22 @@ abstract contract TokenSwapperBase is ISwapTokens {
     delete swapHashes[_swapId];
 
     if (_swap.initiatorETHPortion > 0) {
-      unchecked {
-        // msg.value should never overflow - nobody has that amount of ETH
-        balances[msg.sender] += _swap.initiatorETHPortion;
-      }
+      _sendEthPortion(msg.sender, _swap.initiatorETHPortion);
     }
 
     emit SwapRemoved(_swapId, msg.sender);
+  }
+
+  /**
+   * @notice Transfers an ETH Portion.
+   * @dev The ETH portion is transferred, users must check their wallet for reasonable gas consumption.
+   * @param _destination The destination receiving the ETH.
+   * @param _amount The amount to send.
+   */
+  function _sendEthPortion(address _destination, uint256 _amount) internal {
+    emit EthPortionTransferred(_destination, _amount);
+
+    payable(_destination).sendValue(_amount);
   }
 
   /**
@@ -190,7 +175,7 @@ abstract contract TokenSwapperBase is ISwapTokens {
    * @param _swap The swap data to use and verify.
    */
   function _completeSwap(uint256 _swapId, Swap memory _swap) internal {
-    if (block.timestamp >= _swap.expiryDate) {
+    if (block.timestamp > _swap.expiryDate) {
       revert SwapHasExpired();
     }
 
@@ -215,19 +200,13 @@ abstract contract TokenSwapperBase is ISwapTokens {
     delete swapHashes[_swapId];
 
     if (msg.value > 0) {
-      unchecked {
-        /// @dev msg.value should never overflow - nobody has that amount of ETH.
-        balances[_swap.initiator] += msg.value;
-      }
+      _sendEthPortion(_swap.initiator, msg.value);
     }
 
     address realAcceptor = _swap.acceptor == ZERO_ADDRESS ? msg.sender : _swap.acceptor;
 
     if (_swap.initiatorETHPortion > 0) {
-      unchecked {
-        /// @dev This should never overflow - portion is either zero or a number way less that max uint256.
-        balances[realAcceptor] += _swap.initiatorETHPortion;
-      }
+      _sendEthPortion(realAcceptor, _swap.initiatorETHPortion);
     }
 
     emit SwapComplete(_swapId, _swap.initiator, realAcceptor, _swap);

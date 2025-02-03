@@ -57,11 +57,6 @@ contract ReentryTester is IERC721Receiver {
     return IERC721Receiver.onERC721Received.selector;
   }
 
-  function withdraw(address _swapperAddress) external {
-    ISwapTokens swapper = ISwapTokens(_swapperAddress);
-    swapper.withdraw();
-  }
-
   function approveToken(uint256 _tokenId, address _nftContractAddress, address _swapperAddress) external {
     IERC721 nftContract = IERC721(_nftContractAddress);
     nftContract.approve(_swapperAddress, _tokenId);
@@ -91,8 +86,5 @@ contract ReentryTester is IERC721Receiver {
     swapperAddress = _swapperAddress;
   }
 
-  receive() external payable {
-    ISwapTokens swapper = ISwapTokens(msg.sender);
-    swapper.withdraw();
-  }
+  receive() external payable {}
 }

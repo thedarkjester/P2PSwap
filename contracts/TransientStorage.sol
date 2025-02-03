@@ -6,6 +6,7 @@ import { ISwapTokens } from "./ISwapTokens.sol";
  * @title A helper file for token swapping transient storage.
  * @author The Dark Jester
  * @notice You can use this contract for multi-token swaps.
+ * @custom:security-contact https://github.com/thedarkjester/P2PSwap/security/advisories/new
  */
 
 library TransientStorage {
@@ -18,14 +19,6 @@ library TransientStorage {
     assembly {
       tstore(_key, _storedBool)
     }
-  }
-
-  /**
-   * @notice Resets a transient bool to default.
-   * @param _key The key for the storage.
-   */
-  function _wipeTransientBool(bytes32 _key) internal {
-    _storeTransientBool(_key, false);
   }
 
   /**

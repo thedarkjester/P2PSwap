@@ -4,9 +4,9 @@ pragma solidity >=0.8.20 <=0.8.26;
 /**
  * @title A simple Token swapper contract with no fee takers.
  * @author The Dark Jester
- * @notice You can use this contract for ERC721(A), ERC1155, (x)ERC20 or ERC777 swaps where one party can set up a deal and the other accept.
+ * @notice You can use this contract for ERC-721(A), ERC-1155, (x)ERC-20 or ERC-777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
- * @custom:security-contact security-report@linea.build
+ * @custom:security-contact https://github.com/thedarkjester/P2PSwap/security/advisories/new
  */
 interface ISwapTokens {
   enum TokenType {
@@ -34,11 +34,11 @@ interface ISwapTokens {
   event SwapRemoved(uint256 indexed swapId, address indexed initiator);
 
   /**
-   * @dev Emitted when a a user withdraws their balance.
-   * @param user The user address withdrawing a balance.
-   * @param amount The amount being withdrawn.
+   * @dev Emitted when a user has been transferred an ETH Portion.
+   * @param user The user address being transferred to.
+   * @param amount The amount being transferred.
    */
-  event BalanceWithdrawn(address indexed user, uint256 amount);
+  event EthPortionTransferred(address indexed user, uint256 amount);
 
   /**
    * @dev Emitted when a new swap is completed by the acceptor.
@@ -210,12 +210,6 @@ interface ISwapTokens {
    * @param _swap The full swap data as retrieved from the initiating event.
    */
   function removeSwap(uint256 _swapId, Swap calldata _swap) external;
-
-  /**
-   * @notice Withdraws the msg.sender's balance if it exists.
-   * @dev The ETH balance is sent to the msg.sender.
-   */
-  function withdraw() external;
 
   /**
    * @notice Retrieves the isSameContractSwap value that is temporarily set.

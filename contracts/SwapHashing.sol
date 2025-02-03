@@ -6,6 +6,7 @@ import { ISwapTokens } from "./ISwapTokens.sol";
  * @title A helper file for token swapping hashing.
  * @author The Dark Jester
  * @notice You can use this contract for multi-token swaps.
+ * @custom:security-contact https://github.com/thedarkjester/P2PSwap/security/advisories/new
  */
 
 library SwapHashing {
@@ -34,6 +35,7 @@ library SwapHashing {
       let mPtr := mload(0x40)
       calldatacopy(mPtr, _swap, 0x1a0)
       swapHash := keccak256(mPtr, 0x1a0)
+      mstore(0x40, add(mPtr, 0x1a0))
     }
   }
 }

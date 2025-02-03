@@ -13,14 +13,18 @@ import { TokenSwapperBase } from "./TokenSwapperBase.sol";
 /**
  * @title A simple Token swapper contract with no fee takers.
  * @author The Dark Jester
- * @notice You can use this contract for ERC721,ERC1155,ERC20, xERC20, ERC777 swaps where one party can set up a deal and the other accept.
+ * @notice You can use this contract for ERC-721,ERC-1155,ERC-20, xERC-20, ERC-777 swaps where one party can set up a deal and the other accept.
  * @notice Any party can sweeten the deal with ETH, but that must be set up by the initiator.
+ * @custom:security-contact https://github.com/thedarkjester/P2PSwap/security/advisories/new
  */
 contract TokenSwapper is TokenSwapperBase {
+  /// @custom:storage-location erc7201:tokenswapper.sameswap.transient.key
   bytes32 private constant SAME_CONTRACT_SWAP_TRANSIENT_KEY =
-    bytes32(uint256(keccak256("eip1967.same.contract.swap.transient.key")) - 1);
+    bytes32(uint256(keccak256("tokenswapper.sameswap.transient.key")) - 1) & ~bytes32(uint256(0xff));
 
-  bytes32 private constant REENTRY_TRANSIENT_KEY = bytes32(uint256(keccak256("eip1967.reentry.transient.key")) - 1);
+  /// @custom:storage-location erc7201:tokenswapper.reentry.transient.key
+  bytes32 private constant REENTRY_TRANSIENT_KEY =
+    bytes32(uint256(keccak256("tokenswapper.reentry.transient.key")) - 1) & ~bytes32(uint256(0xff));
 
   using TransientStorage for *;
   using SwapHashing for *;
@@ -39,7 +43,7 @@ contract TokenSwapper is TokenSwapperBase {
 
     TransientStorage._storeTransientBool(REENTRY_TRANSIENT_KEY, true);
     _;
-    TransientStorage._wipeTransientBool(REENTRY_TRANSIENT_KEY);
+    TransientStorage._storeTransientBool(REENTRY_TRANSIENT_KEY, false);
   }
 
   /**
@@ -58,7 +62,7 @@ contract TokenSwapper is TokenSwapperBase {
 
     _completeSwap(_swapId, _swap);
 
-    TransientStorage._wipeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY);
+    TransientStorage._storeTransientBool(SAME_CONTRACT_SWAP_TRANSIENT_KEY, false);
   }
 
   /**
