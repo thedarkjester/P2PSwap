@@ -2,7 +2,13 @@
 
 ## Where is the official deploy at?
 
+### Audits
+- Consensys Diligence [https://diligence.consensys.io/audits/private/chl9kaod7d8tlq](https://diligence.consensys.io/audits/private/chl9kaod7d8tlq)
+- KeySecurity - gkrastenov [https://github.com/gkrastenov/audits/blob/9ec0d368833c67231b953ea9efc193a55de826b1/solo/P2PSwap-Security-Review.pdf](https://github.com/gkrastenov/audits/blob/9ec0d368833c67231b953ea9efc193a55de826b1/solo/P2PSwap-Security-Review.pdf)
+
 ### Previous versions:
+
+**NB:** *The deploy at 0xb9ec645254457ad5a07a100ca150006aac97d24e has been replaced post the Diligence Audit for sending ETH in a push method vs. pull - technically it is still sound to use if preffered*
 
 **NB:** *The deploy at 0x5343B7751483F60714Dc237d88f796b8023b529E has been replaced as it didn't support USDT, NFTs with id=0, and has a potential issue on open swaps where ETH was allocated incorrectly*
 
@@ -13,18 +19,19 @@ If you wish to use the currently deployed app with the new features:
 
 Verified contracts on Etherscan - 
 Ethereum Sepolia:
-- https://sepolia.etherscan.io/address/0xb9ec645254457ad5a07a100ca150006aac97d24e#code
+- https://sepolia.etherscan.io/address/0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd#code
 
 Ethereum Mainnet:
-- https://etherscan.io/address/0xb9ec645254457ad5a07a100ca150006aac97d24e#code
+- https://etherscan.io/address/0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd#code
 - This is registered at: `p2pswap.eth`, `swapp2p.eth` and `p2pswop.eth`
 
 Verified contracts on LineaScan - 
 Linea Sepolia:
-- https://sepolia.lineascan.build/address/0xb9ec645254457ad5a07a100ca150006aac97d24e#code
+- https://sepolia.lineascan.build/address/0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd#code
 
 Linea Mainnet:
-- https://lineascan.build/address/0xb9ec645254457ad5a07a100ca150006aac97d24e#code
+- https://lineascan.build/address/0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd#code
+
 
 ## Ok, so what is this Token Swapper thing? 
 
@@ -68,21 +75,18 @@ I have spent a lot of time and effort trying to tweak the gas to be as minimal a
 ```
 |  Contract               ·  Method             ·  Min        ·  Max        ·  Avg        ·  # calls      ·  usd (avg)  │
 ··························|·····················|·············|·············|·············|···············|··············
-|  NonCancunTokenSwapper  ·  completeSwap       ·      76871  ·     129176  ·     103132  ·           43  ·          -  │
+|  NonCancunTokenSwapper  ·  completeSwap       ·      76833  ·     116828  ·      99074  ·           30  ·          -  │
 ··························|·····················|·············|·············|·············|···············|··············
-|  NonCancunTokenSwapper  ·  initiateSwap       ·      59402  ·      60072  ·      59720  ·          118  ·          -  │
+|  NonCancunTokenSwapper  ·  initiateSwap       ·      59358  ·      60028  ·      59677  ·          104  ·          -  │
 ··························|·····················|·············|·············|·············|···············|··············
-|  NonCancunTokenSwapper  ·  removeSwap         ·      29147  ·      51126  ·      35442  ·           21  ·          -  │
+|  NonCancunTokenSwapper  ·  removeSwap         ·      29124  ·      37273  ·      30762  ·           15  ·          -  │
 ··························|·····················|·············|·············|·············|···············|··············
-|  NonCancunTokenSwapper  ·  withdraw           ·          -  ·          -  ·      29915  ·            6  ·          -  │
+|  TokenSwapper           ·  completeSwap       ·      69112  ·     112673  ·      93557  ·           31  ·          -  │
 ··························|·····················|·············|·············|·············|···············|··············
-|  TokenSwapper           ·  completeSwap       ·      69149  ·     125180  ·      98621  ·           43  ·          -  │
+|  TokenSwapper           ·  initiateSwap       ·      59317  ·      60007  ·      59669  ·          105  ·          -  │
 ··························|·····················|·············|·············|·············|···············|··············
-|  TokenSwapper           ·  initiateSwap       ·      59368  ·      60058  ·      59722  ·          118  ·          -  │
+|  TokenSwapper           ·  removeSwap         ·      26751  ·      35214  ·      28447  ·           15  ·          -  │
 ··························|·····················|·············|·············|·············|···············|··············
-|  TokenSwapper           ·  removeSwap         ·      26792  ·      49087  ·      33173  ·           21  ·          -  │
-··························|·····················|·············|·············|·············|···············|··············
-|  TokenSwapper           ·  withdraw           ·          -  ·          -  ·      29895  ·            6  ·          -  │
 ```
 
 #### Some tweaks:
@@ -153,11 +157,11 @@ Struct definitiona from [ISwapTokens.sol](./contracts/ISwapTokens.sol)
     **Note:** The UI does this for you, but if you interact directly with the contract, you would do this.
 
 5. pA accepts the swap (sending ETH if the swap is expecting pA to sweeten the deal) and boom, the Token(s) change owners. (`completeSwap` function)
-6. If pI or pA sweetened the deal with ETH, pI or pA can then `withdraw` their ETH from the contract at their leisure. Why didn't this happen automatically? - best practice is to use a withdraw pattern to keep operations discrete.
+6. If pI or pA sweetened the deal with ETH, pI or pA will automatically be sent their ETH portion.
 
 At this point it is important to note that the Swapper contract immediately loses approval for the ERC721 Token(s) because they have changed ownership unless you manually did an `approveForAll`. The same goes for the `ERC20` variants if you only set the allowance to the swap amounts.
 
-7. If the deal has expired and `pI` put ETH in, they can retrieve their balance by removing the swap and then withdrawing their funds.
+7. If the deal has expired and `pI` put ETH in, they can retrieve their balance by removing the swap withdrawing their funds in the same transaction.
 
 ## Open Swaps
 When `pI` wishes to make the swap open for anyone to accept, they are able to do so by specifying the acceptor as `address zero`. Importantly, this cannot apply to ERC721s on `pA`, so only the ERC20/1155/ETH variants are applicable.
